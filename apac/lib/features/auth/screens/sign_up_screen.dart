@@ -4,6 +4,9 @@ import '../../../shared/widgets/custom_button.dart';
 import '../../../shared/widgets/custom_textfield.dart';
 import '../../../shared/widgets/social_button.dart';
 import '../providers/auth_provider.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
+
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({Key? key}) : super(key: key);
@@ -14,108 +17,110 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   bool _privacyPolicyChecked = false;
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _nameController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      backgroundColor: Color(0xFFFFFFFF),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Stack(
+            alignment: Alignment.center,
             children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => Navigator.pop(context),
-                padding: EdgeInsets.zero,
-                alignment: Alignment.centerLeft,
+              Image.asset(
+                'assets/images/headerauth.png',
+                fit: BoxFit.contain,
               ),
-              const SizedBox(height: 24),
-              const Text(
-                'Create your account',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 40),
-              SocialButton(
-                text: 'CONTINUE WITH GOOGLE',
-                icon: Image.network(
-                  '/api/placeholder/24/24',
-                  width: 24,
-                  height: 24,
-                ),
-                onPressed: () => AuthProvider.signInWithGoogle(),
-              ),
-              const SizedBox(height: 24),
-              const Center(
-                child: Text(
-                  'OR LOG IN WITH EMAIL',
-                  style: TextStyle(color: Colors.black54, fontSize: 14),
-                ),
-              ),
-              const SizedBox(height: 24),
-              CustomTextField(
-                hintText: 'Name',
-                suffixIcon: const Icon(
-                  Icons.check_circle,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(height: 16),
-              CustomTextField(
-                hintText: 'Email address',
-                suffixIcon: const Icon(
-                  Icons.check_circle,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(height: 16),
-              CustomTextField(
-                hintText: 'Password',
-                obscureText: true,
-                suffixIcon: const Icon(
-                  Icons.visibility_off,
-                  color: Colors.grey,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Checkbox(
-                    value: _privacyPolicyChecked,
-                    onChanged: (value) {
-                      setState(() {
-                        _privacyPolicyChecked = value ?? false;
-                      });
-                    },
-                    activeColor: AppColors.primary,
-                  ),
-                  const Text('I have read the '),
-                  TextButton(
-                    onPressed: () {},
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: const Text(
-                      'Privacy Policy',
-                      style: TextStyle(color: AppColors.primary),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              CustomButton(
-                text: 'GET STARTED',
-                onPressed: () => AuthProvider.signUp(),
-                isDisabled: !_privacyPolicyChecked,
-              ),
+              Text(
+                  'Welcome AgriHero!',
+                  style: GoogleFonts.montserrat(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold
+                  )),
             ],
           ),
-        ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              children: [
+                ElevatedButton(
+                    onPressed: () => context.goNamed('signup'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      minimumSize: Size(374, 63),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(32),
+                        // ↓ Ini tambahan border-nya
+                        side: BorderSide(
+                          color: Colors.grey, // Warna border
+                          width: 0.2,         // Ketebalan border
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Image.asset(
+                            'assets/images/googlelogo.png',
+                            fit: BoxFit.cover
+                        ),
+                        Expanded(
+                            child:
+                            Container(
+                              child: Text(
+                                'CONTINUE WITH GOOGLE',
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.montserrat(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            )
+                        )
+                      ],
+                    )
+                ),
+                Text('data'),
+                SizedBox(height: 50,),
+                Container(
+                  child: Column(
+                    children:[
+                      TextField(
+                        decoration: InputDecoration(
+                            labelText: 'Nama'
+                        ),
+                      ),
+                      SizedBox(height: 25),
+                      TextField(
+                        decoration: InputDecoration(
+                            labelText: 'Email'
+                        ),
+                      ),
+                      SizedBox(height: 25),
+                      TextField(
+                        decoration: InputDecoration(
+                            labelText: 'Email'
+                        ),
+                      )
+                    ],
+                  ),
+                )
+              ],
+            ),
+          )
+        ],
       ),
     );
   }

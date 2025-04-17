@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
-
+import 'package:go_router/go_router.dart';
 
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({Key? key}) : super(key: key);
@@ -40,21 +39,22 @@ class OnboardingScreen extends StatelessWidget {
                         fontWeight: FontWeight.w300
                     )),
                 SizedBox(height: 80),
-                Container(
-                  width: 374,
-                  height: 63,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Color(0xFF307D32),
-                    borderRadius: BorderRadius.circular(32)
+                ElevatedButton(
+                  onPressed: () => context.goNamed('signup'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF307D32),
+                    minimumSize: Size(374, 63),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(32),
+                    ),
                   ),
                   child: Text(
-                      'Sign Up',
-                      style: GoogleFonts.montserrat(
-                        fontWeight: FontWeight.bold,
+                    "Sign Up",
+                    style: GoogleFonts.montserrat(
                         fontSize: 13,
-                        color: Colors.white
-                      ),
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold
+                    ),
                   ),
                 ),
                 SizedBox(height: 20),

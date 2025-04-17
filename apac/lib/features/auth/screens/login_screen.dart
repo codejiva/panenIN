@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../config/constants/colors.dart';
-import '../../../config/routes/app_router.dart';
+import 'package:go_router/go_router.dart';
 import '../../../shared/widgets/custom_button.dart';
 import '../../../shared/widgets/custom_textfield.dart';
 import '../../../shared/widgets/social_button.dart';
@@ -76,9 +76,7 @@ class LoginScreen extends StatelessWidget {
               const Spacer(),
               Center(
                 child: TextButton(
-                  onPressed: () {
-                    Navigator.pushNamed(context, AppRouter.signup);
-                  },
+                  onPressed: () => context.goNamed('signup'),
                   child: RichText(
                     text: const TextSpan(
                       text: 'ALREADY HAVE AN ACCOUNT? ',

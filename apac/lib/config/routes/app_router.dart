@@ -1,27 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/sign_up_screen.dart';
 import '../../features/onboarding/screens/onboarding_screen.dart';
 
 class AppRouter {
-  static const String onboarding = '/';
-  static const String login = '/login';
-  static const String signup = '/signup';
+  static final GoRouter router = GoRouter(
+    initialLocation: '/',
+    debugLogDiagnostics: true,
+    routes: [
+      GoRoute(
+        path: '/',
+        name: 'onboarding',
+        builder: (context, state) => const OnboardingScreen(),
+      ),
+      GoRoute(
+        path: '/login',
+        name: 'login',
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/signup',
+        name: 'signup',
+        builder: (context, state) => const SignUpScreen(),
+      ),
+    ],
+    //errorBuilder: (context, state) => const NotFoundScreen(),
+  );
 
-  static Route<dynamic> onGenerateRoute(RouteSettings settings) {
-    switch (settings.name) {
-      case onboarding:
-        return MaterialPageRoute(builder: (_) => const OnboardingScreen());
-      case login:
-        return MaterialPageRoute(builder: (_) => const LoginScreen());
-      case signup:
-        return MaterialPageRoute(builder: (_) => const SignUpScreen());
-      default:
-        return MaterialPageRoute(
-          builder: (_) => const Scaffold(
-            body: Center(child: Text('Route not found')),
-          ),
-        );
-    }
+  // Helper untuk memeriksa status login user
+  static bool checkIfUserIsLoggedIn() {
+    // Implementasi logika untuk memeriksa status login
+    return false; // Ganti dengan logika sebenarnya
   }
 }
