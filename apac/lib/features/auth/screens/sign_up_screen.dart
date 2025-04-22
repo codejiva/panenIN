@@ -218,7 +218,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                         SizedBox(height: 20),
                         ElevatedButton(
-                          onPressed: () => context.goNamed('dashboard'),
+                          onPressed: () => context.goNamed('home'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Color(0xFF307D32),
                             minimumSize: Size(374, 63),

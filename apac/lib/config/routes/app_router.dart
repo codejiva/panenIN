@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/sign_up_screen.dart';
 import '../../features/onboarding/screens/onboarding_screen.dart';
+import '../../features/home/screens/home_screen.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
@@ -23,6 +24,11 @@ class AppRouter {
         path: '/signup',
         name: 'signup',
         builder: (context, state) => const SignUpScreen(),
+      ),
+      GoRoute(
+        path: '/home',
+        name: 'home',
+        builder: (context, state) => const HomeScreen(),
       ),
     ],
     //errorBuilder: (context, state) => const NotFoundScreen(),
