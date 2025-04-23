@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../features/auth/screens/login_screen.dart';
+import '../../features/auth/screens/sign_in_screen.dart';
 import '../../features/auth/screens/sign_up_screen.dart';
 import '../../features/onboarding/screens/onboarding_screen.dart';
 import '../../features/home/screens/home_screen.dart';
@@ -18,7 +18,7 @@ class AppRouter {
       GoRoute(
         path: '/login',
         name: 'login',
-        builder: (context, state) => const LoginScreen(),
+        builder: (context, state) => const SignInScreen(),
       ),
       GoRoute(
         path: '/signup',
