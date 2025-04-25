@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:fl_chart/fl_chart.dart';
 
-
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
@@ -18,6 +17,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Koordinat default untuk peta (misalnya: Jakarta)
   final LatLng _center = const LatLng(-6.2088, 106.8456);
+  int touchedIndex = -1;
 
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
@@ -60,9 +60,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         body: SingleChildScrollView(
-          padding: EdgeInsets.all(15),
+          padding: EdgeInsets.all(10),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start, // Tambahkan ini
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(height: 10),
               Text(
@@ -121,62 +121,52 @@ class _HomeScreenState extends State<HomeScreen> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(4.0),
                   child: Column(
                     children: [
-                      const SizedBox(height: 20),
                       Row(
                         children: [
-                          SizedBox(
-                            width: 200,  // Ganti sesuai kebutuhan, misalnya 300 atau 350
-                            height: 200,
-                            child: PieChart(
-                              PieChartData(
-                                sections: [
-                                  PieChartSectionData(
-                                    value: 10,
-                                    color: Colors.green[800],
-                                    title: '10%',
-                                    titleStyle: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
+                          const SizedBox(width: 30),
+                          Expanded(  // Gunakan Expanded untuk fleksibilitas
+                            child: SizedBox(
+                              height: 200,
+                              width: 200,
+                              child: PieChart(
+                                PieChartData(
+                                  pieTouchData: PieTouchData(
+                                    touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                                      setState(() {
+                                        if (!event.isInterestedForInteractions ||
+                                            pieTouchResponse == null ||
+                                            pieTouchResponse.touchedSection == null) {
+                                          touchedIndex = -1;
+                                          return;
+                                        }
+                                        touchedIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                                      });
+                                    },
                                   ),
-                                  PieChartSectionData(
-                                    value: 20,
-                                    color: Colors.green[200],
-                                    title: '20%',
-                                    titleStyle: TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                  PieChartSectionData(
-                                    value: 70,
-                                    color: Colors.red[300],
-                                    title: '70%',
-                                    titleStyle: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ],
-                                sectionsSpace: 0,
-                                centerSpaceRadius: 0,
+                                  borderData: FlBorderData(show: false),
+                                  sectionsSpace: 0,
+                                  centerSpaceRadius: 0,
+                                  sections: showingSections(),
+                                ),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 32),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _legendItem(Colors.green[800]!, 'Healthy'),
-                              _legendItem(Colors.green[200]!, 'Unhealthy'),
-                              _legendItem(Colors.red[300]!, 'Critical'),
-                            ],
+                          const SizedBox(width: 40),
+                          Expanded(  // Gunakan Expanded untuk legenda
+                            flex: 1,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _legendItem(Colors.green[800]!, 'Healthy'),
+                                SizedBox(height: 10),
+                                _legendItem(Colors.green[200]!, 'Unhealthy'),
+                                SizedBox(height: 10),
+                                _legendItem(Colors.red[300]!, 'Critical'),
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -196,8 +186,8 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         children: [
           Container(
-            width: 16,
-            height: 16,
+            width: 25,
+            height: 25,
             decoration: BoxDecoration(
               color: color,
               shape: BoxShape.circle,
@@ -205,9 +195,64 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          Text(label, style: const TextStyle(fontSize: 16)),
+          Text(
+              label,
+              style: GoogleFonts.montserrat(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              )
+          ),
         ],
       ),
     );
+  }
+
+  // Pindahkan fungsi showingSections ke dalam kelas
+  List<PieChartSectionData> showingSections() {
+    return List.generate(3, (i) {
+      final isTouched = i == touchedIndex;
+      final fontSize = isTouched ? 25.0 : 16.0;
+      final radius = isTouched ? 90.0 : 80.0;
+      switch (i) {
+        case 0:
+          return PieChartSectionData(
+            color: Colors.green[800]!,
+            value: 60,
+            title: '60%',
+            radius: radius,
+            titleStyle: TextStyle(
+              fontSize: fontSize,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          );
+        case 1:
+          return PieChartSectionData(
+            color: Colors.green[200]!,
+            value: 30,
+            title: '30%',
+            radius: radius,
+            titleStyle: TextStyle(
+              fontSize: fontSize,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          );
+        case 2:
+          return PieChartSectionData(
+            color: Colors.red[300]!,
+            value: 10,
+            title: '10%',
+            radius: radius,
+            titleStyle: TextStyle(
+              fontSize: fontSize,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          );
+        default:
+          throw Error();
+      }
+    });
   }
 }
