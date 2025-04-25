@@ -1,0 +1,2 @@
+/Users/kevinramadha/Documents/agribuddyapp/apac/android/app/.cxx/Debug/2a5f4u6v/x86/CMakeFiles/edit_cache.dir
+/Users/kevinramadha/Documents/agribuddyapp/apac/android/app/.cxx/Debug/2a5f4u6v/x86/CMakeFiles/rebuild_cache.dir

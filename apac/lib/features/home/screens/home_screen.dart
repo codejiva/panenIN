@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -21,6 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -57,113 +59,153 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-      body:SingleChildScrollView(
-        padding: EdgeInsets.all(15),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start, // Tambahkan ini
-          children: [
-            SizedBox(height: 10),
-            Text(
-                'Dashboard Monitoring',
-                style: GoogleFonts.montserrat(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                )
-            ),
-            Text(
-                'Start your smarter farming journey with technology!',
-                style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w300,
-                    fontSize: 12
-                )
-            ),
-            Container(
-              height: 200, // Tinggi peta
-              width: double.infinity, // Lebar penuh
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: GoogleMap(
-                  onMapCreated: _onMapCreated,
-                  initialCameraPosition: CameraPosition(
-                    target: _center,
-                    zoom: 14.0,
-                  ),
-                  markers: {
-                    Marker(
-                      markerId: MarkerId('farm_location'),
-                      position: _center,
-                      infoWindow: InfoWindow(
-                        title: 'Your Farm',
-                        snippet: 'Smart Farming Location',
-                      ),
-                    ),
-                  },
-                ),
-              ),
-            )
-          ],
-        ),
-      )
-    );
-  }
-
-  Widget _buildSensorCard(String title, String value, String status, IconData icon, Color color) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: color),
-                const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: const TextStyle(
+        body: SingleChildScrollView(
+          padding: EdgeInsets.all(15),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start, // Tambahkan ini
+            children: [
+              SizedBox(height: 10),
+              Text(
+                  'Dashboard Monitoring',
+                  style: GoogleFonts.montserrat(
                     fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  )
+              ),
+              Text(
+                  'Start your smarter farming journey with technology!',
+                  style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w300,
+                      fontSize: 12
+                  )
+              ),
+              Container(
+                height: 200, // Tinggi peta
+                width: double.infinity, // Lebar penuh
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.green.shade300),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: GoogleMap(
+                    onMapCreated: _onMapCreated,
+                    initialCameraPosition: CameraPosition(
+                      target: _center,
+                      zoom: 14.0,
+                    ),
+                    markers: {
+                      Marker(
+                        markerId: MarkerId('farm_location'),
+                        position: _center,
+                        infoWindow: InfoWindow(
+                          title: 'Your Farm',
+                          snippet: 'Smart Farming Location',
+                        ),
+                      ),
+                    },
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: color,
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              status,
-              style: TextStyle(
-                color: Colors.grey[600],
+              SizedBox(height: 30),
+              Text(
+                  'Plant Health',
+                  style: GoogleFonts.montserrat(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  )
               ),
-            ),
-          ],
-        ),
-      ),
+              Card(
+                color: Colors.white,
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          SizedBox(
+                            width: 200,  // Ganti sesuai kebutuhan, misalnya 300 atau 350
+                            height: 200,
+                            child: PieChart(
+                              PieChartData(
+                                sections: [
+                                  PieChartSectionData(
+                                    value: 10,
+                                    color: Colors.green[800],
+                                    title: '10%',
+                                    titleStyle: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  PieChartSectionData(
+                                    value: 20,
+                                    color: Colors.green[200],
+                                    title: '20%',
+                                    titleStyle: TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  PieChartSectionData(
+                                    value: 70,
+                                    color: Colors.red[300],
+                                    title: '70%',
+                                    titleStyle: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
+                                sectionsSpace: 0,
+                                centerSpaceRadius: 0,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 32),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _legendItem(Colors.green[800]!, 'Healthy'),
+                              _legendItem(Colors.green[200]!, 'Unhealthy'),
+                              _legendItem(Colors.red[300]!, 'Critical'),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            ],
+          ),
+        )
     );
   }
 
-  Widget _buildRecommendationItem(String text) {
+  Widget _legendItem(Color color, String label) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('• '),
-          Expanded(child: Text(text)),
+          Container(
+            width: 16,
+            height: 16,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.black12),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(label, style: const TextStyle(fontSize: 16)),
         ],
       ),
     );
