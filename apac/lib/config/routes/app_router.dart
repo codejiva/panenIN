@@ -1,3 +1,4 @@
+import 'package:PanenIn/features/home/screens/maps_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/screens/sign_in_screen.dart';
@@ -49,7 +50,7 @@ class AppRouter {
           GoRoute(
             path: '/maps',
             name: 'maps',
-            builder: (context, state) => const Scaffold(body: Center(child: Text('Maps Screen'))),
+            builder: (context, state) => const MapsScreen(),
           ),
           GoRoute(
             path: '/monitoring',

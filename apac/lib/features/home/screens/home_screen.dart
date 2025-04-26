@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -26,38 +26,56 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          flexibleSpace: Image.asset(
-            'assets/images/backgroundheader.png',
-            fit: BoxFit.cover,
-          ),
-          title: Image.asset(
-            'assets/images/nama_app.png',
-          ),
-          actions: [
-            InkWell(
-              onTap: () {
-                print('Notifikasi ditekan!');
-              },
-              child: Image.asset(
-                'assets/images/notifikasi.png',
-                fit: BoxFit.contain,
-              ),
-            ),
-            SizedBox(width: 10),
-            InkWell(
-              onTap: () {
-                print('Profile ditekan!');
-              },
-              child: Padding(
-                padding: const EdgeInsets.only(right: 15.0),
-                child: Image.asset(
-                  'assets/images/Profile.png',
-                  fit: BoxFit.contain,
+        appBar: PreferredSize(
+          preferredSize: Size.fromHeight(kToolbarHeight),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(15.0)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.5),
+                  spreadRadius: 2,
+                  blurRadius: 7,
+                  offset: Offset(0, 3),
                 ),
+              ]
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(15.0)),
+              child: AppBar(
+                backgroundColor: Colors.white,
+                elevation: 0,
+                title: SvgPicture.asset(
+                  'assets/images/nama_app.svg',
+                ),
+                actions: [
+                  InkWell(
+                    onTap: () {
+                      print('Notifikasi ditekan!');
+                    },
+                    child: Image.asset(
+                      'assets/images/notifikasi.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  SizedBox(width: 10),
+                  InkWell(
+                    onTap: () {
+                      print('Profile ditekan!');
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 15.0),
+                      child: Image.asset(
+                        'assets/images/Profile.png',
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
         body: SingleChildScrollView(
           padding: EdgeInsets.all(10),
@@ -79,6 +97,264 @@ class _HomeScreenState extends State<HomeScreen> {
                       fontSize: 12
                   )
               ),
+              SizedBox(height: 10),
+              Container(
+                 decoration: BoxDecoration(
+                   boxShadow: [
+                     BoxShadow(
+                       color: Colors.grey,
+                       blurRadius: 2,
+                       offset: Offset(0, 3), // changes position of shadow
+                     ),
+                   ],
+                   borderRadius: BorderRadius.circular(12.0),
+                   color: Colors.white,
+                 ),
+                child: Padding(
+                  padding: EdgeInsets.all(10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Column(
+                        children: [
+                          Container(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Icon(
+                                      Icons.thermostat,
+                                      size: 30,
+                                    ),
+                                    Container(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Temperature',
+                                            style: GoogleFonts.inter(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600
+                                            ),
+                                          ),
+                                          Text(
+                                            '34°C',
+                                            style: GoogleFonts.inter(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600
+                                            ),
+                                          ),
+                                          Text(
+                                            'High – risk of heat stress',
+                                            style: GoogleFonts.inter(
+                                                fontSize: 8,
+                                                fontWeight: FontWeight.w400
+                                            ),
+                                          )
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.thumb_down,
+                                      color: Colors.red,
+                                      size: 20,
+                                    )
+                                  ],
+                                ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Icon(
+                                      Icons.water_drop_outlined,
+                                      size: 30,
+                                    ),
+                                    Container(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Soil Moisture',
+                                            style: GoogleFonts.inter(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600
+                                            ),
+                                          ),
+                                          Text(
+                                            '20%',
+                                            style: GoogleFonts.inter(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600
+                                            ),
+                                          ),
+                                          Text(
+                                            'Low – below optimal range of 30–40%',
+                                            style: GoogleFonts.inter(
+                                                fontSize: 8,
+                                                fontWeight: FontWeight.w400
+                                            ),
+                                          )
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.thumb_down,
+                                      color: Colors.red,
+                                      size: 20,
+                                    )
+                                  ],
+                                ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Icon(
+                                      Icons.thermostat,
+                                      size: 30,
+                                    ),
+                                    Container(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Soil pH',
+                                            style: GoogleFonts.inter(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600
+                                            ),
+                                          ),
+                                          Text(
+                                            '5.4',
+                                            style: GoogleFonts.inter(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600
+                                            ),
+                                          ),
+                                          Text(
+                                            'Slightly acidic – ideal: 6.0–6.8',
+                                            style: GoogleFonts.inter(
+                                                fontSize: 8,
+                                                fontWeight: FontWeight.w400
+                                            ),
+                                          )
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.thumb_down,
+                                      color: Colors.red,
+                                      size: 20,
+                                    )
+                                  ],
+                                ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      Icons.thermostat,
+                                      size: 30,
+                                    ),
+                                    Container(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Light Intensity',
+                                            style: GoogleFonts.inter(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600
+                                            ),
+                                          ),
+                                          Text(
+                                            '78%',
+                                            style: GoogleFonts.inter(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600
+                                            ),
+                                          ),
+                                          Text(
+                                            'Optimal for photosynthesis',
+                                            style: GoogleFonts.inter(
+                                                fontSize: 8,
+                                                fontWeight: FontWeight.w400
+                                            ),
+                                          )
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.thumb_down,
+                                      color: Colors.red,
+                                      size: 20,
+                                    )
+                                  ],
+                                )
+                              ],
+                            ),
+                          )
+                        ],
+                      ),
+                      SvgPicture.asset('assets/images/Line 3'),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Container(
+                            child: Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Icon(
+                                      Icons.thermostat,
+                                      size: 30,
+                                    ),
+                                    Container(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Temperature',
+                                            style: GoogleFonts.inter(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600
+                                            ),
+                                          ),
+                                          Text(
+                                            '34°C',
+                                            style: GoogleFonts.inter(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600
+                                            ),
+                                          ),
+                                          Text(
+                                            'High – risk of heat stress',
+                                            style: GoogleFonts.inter(
+                                                fontSize: 8,
+                                                fontWeight: FontWeight.w400
+                                            ),
+                                          )
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.thumb_down,
+                                      color: Colors.red,
+                                      size: 20,
+                                    )
+                                  ],
+                                )
+                              ],
+                            ),
+                          )
+                        ],
+                      )
+                    ],
+                  ),
+                )
+              ),
+              SizedBox(height: 20),
               Container(
                 height: 200, // Tinggi peta
                 width: double.infinity, // Lebar penuh
