@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../config/constants/colors.dart';
 import '../../../shared/widgets/buttom_navbar.dart';
-import '../../../shared/widgets/custom_textfield.dart';
-import '../../../shared/widgets/social_button.dart';
 import '../providers/auth_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';

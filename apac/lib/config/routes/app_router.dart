@@ -1,4 +1,5 @@
-import 'package:PanenIn/features/home/screens/maps_screen.dart';
+import 'package:PanenIn/features/forum/screens/forum_screen.dart';
+import 'package:PanenIn/features/maps/screens/maps_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/screens/sign_in_screen.dart';
@@ -63,9 +64,9 @@ class AppRouter {
             builder: (context, state) => const Scaffold(body: Center(child: Text('Profile Screen'))),
           ),
           GoRoute(
-            path: '/chat',
-            name: 'chat',
-            builder: (context, state) => const Scaffold(body: Center(child: Text('Chat Screen'))),
+            path: '/forum',
+            name: 'forum',
+            builder: (context, state) => const ForumScreen(),
           ),
         ],
       ),
@@ -98,7 +99,7 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
     '/maps',
     '/monitoring',
     '/profile',
-    '/chat',
+    '/forum',
   ];
 
   @override

@@ -1,3 +1,4 @@
+import 'package:PanenIn/shared/widgets/appbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -26,56 +27,15 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: PreferredSize(
-          preferredSize: Size.fromHeight(kToolbarHeight),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(15.0)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.5),
-                  spreadRadius: 2,
-                  blurRadius: 7,
-                  offset: Offset(0, 3),
-                ),
-              ]
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(15.0)),
-              child: AppBar(
-                backgroundColor: Colors.white,
-                elevation: 0,
-                title: SvgPicture.asset(
-                  'assets/images/nama_app.svg',
-                ),
-                actions: [
-                  InkWell(
-                    onTap: () {
-                      print('Notifikasi ditekan!');
-                    },
-                    child: Image.asset(
-                      'assets/images/notifikasi.png',
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                  SizedBox(width: 10),
-                  InkWell(
-                    onTap: () {
-                      print('Profile ditekan!');
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 15.0),
-                      child: Image.asset(
-                        'assets/images/Profile.png',
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+        appBar: SharedAppBar(
+          onNotificationPressed: () {
+            print('Notifikasi ditekan dari HomeScreen!');
+            // Tambahkan aksi khusus untuk notifikasi di halaman ini
+          },
+          onProfilePressed: () {
+            print('Profile ditekan dari HomeScreen!');
+            // Tambahkan aksi khusus untuk profile di halaman ini
+          },
         ),
         body: SingleChildScrollView(
           padding: EdgeInsets.all(10),
