@@ -1,7 +1,9 @@
+import 'package:PanenIn/config/constants/colors.dart';
 import 'package:PanenIn/shared/widgets/appbar.dart';
 import 'package:flutter/material.dart';
 import 'package:PanenIn/features/forum/widgets/ForumPostCard.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -30,7 +32,40 @@ class _ForumScreenState extends State<ForumScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
-          children: const [
+          children: [
+            Row(
+              children: [
+                Column(
+                  children: [
+                    Text(
+                        'Community Forum',
+                        style: GoogleFonts.montserrat(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold
+                        )
+                    ),
+                    Text(
+                        'Where Ideas Grow and Connections Matter!',
+                        style: GoogleFonts.montserrat(
+                            fontSize: 13,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w300
+                        )
+                    ),
+                  ],
+                ),
+                ElevatedButton(
+                    onPressed: () => context.goNamed('signup'),
+                    child: Container(
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit)
+                        ],
+                      ),
+                    )
+                )
+              ],
+            ),
             ForumPostCard(
               question: 'What Are the Benefits of Using Soil Moisture Sensors for Plant Growth?',
               author: 'Pa***n',

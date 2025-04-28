@@ -6,5 +6,5 @@ class AppColors {
   static const Color background = Colors.white;
   static const Color textPrimary = Colors.black87;
   static const Color textSecondary = Colors.black54;
-  static const Color tersier = Color(0x2E7D32);
+  static const Color tersier = Color(0xFF2E7D32);
 }
