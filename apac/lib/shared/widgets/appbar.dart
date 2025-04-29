@@ -39,16 +39,18 @@ class SharedAppBar extends StatelessWidget implements PreferredSizeWidget {
             elevation: 0,
             title: SvgPicture.asset(
               'assets/images/nama_app.svg',
+              height: 30, // Added explicit height for better consistency
             ),
             actions: [
               InkWell(
-                onTap: onNotificationPressed ?? () {
-                  debugPrint('Notifikasi ditekan!');
-                },
-                child: Icon(
-                    Icons.account_circle_outlined,
-                  size: 25,
-                )
+                  onTap: onNotificationPressed ?? () {
+                    debugPrint('Notifikasi ditekan!');
+                  },
+                  child: const Icon(
+                    Icons.notifications,
+                    size: 25,
+                    color: Colors.black54, // Added color for better visibility
+                  )
               ),
               const SizedBox(width: 10),
               InkWell(
@@ -56,11 +58,12 @@ class SharedAppBar extends StatelessWidget implements PreferredSizeWidget {
                   debugPrint('Profile ditekan!');
                 },
                 child: Padding(
-                  padding: const EdgeInsets.only(right: 15.0),
-                  child: Icon(
-                    Icons.notifications,
-                    size: 25,
-                  )
+                    padding: const EdgeInsets.only(right: 15.0),
+                    child: const Icon(
+                      Icons.account_circle_outlined,
+                      size: 25,
+                      color: Colors.black54, // Added color for better visibility
+                    )
                 ),
               ),
             ],

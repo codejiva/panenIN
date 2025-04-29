@@ -20,7 +20,7 @@ class ForumPostCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 0,
-      color: AppColors.primary,
+      color: AppColors.tersier,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
