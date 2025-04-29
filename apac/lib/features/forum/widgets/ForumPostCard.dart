@@ -1,5 +1,7 @@
 import 'package:PanenIn/config/constants/colors.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class ForumPostCard extends StatelessWidget {
@@ -18,8 +20,10 @@ class ForumPostCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
+    return
+    InkWell(
+        onTap: () => context.goNamed('answer'),
+        child: Card(
       color: AppColors.tersier,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -32,26 +36,18 @@ class ForumPostCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.person,
-                    color: Colors.grey[600],
-                    size: 22,
-                  ),
+                Icon(
+                  Icons.account_circle,
+                  color: Colors.white,
+                  size: 40,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     question,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                    style: GoogleFonts.montserrat(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
                       color: Colors.white,
                     ),
                   ),
@@ -66,38 +62,60 @@ class ForumPostCard extends StatelessWidget {
                 children: [
                   Text(
                     'By: $author',
-                    style: const TextStyle(
+                    style: GoogleFonts.montserrat(
                       fontSize: 12,
-                      color: Colors.white70,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     'Answered by: $expertName',
-                    style: const TextStyle(
+                    style: GoogleFonts.montserrat(
                       fontSize: 12,
-                      color: Colors.white70,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: 106,
+                    height: 28,
+                    child: ElevatedButton(
+                      onPressed: () => context.goNamed('answer'),
+                      style: ElevatedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20), // ubah angka sesuai keinginan
+                          ),
+                          padding: EdgeInsets.zero, // Buat padding button pas dengan size kecil
+                          backgroundColor: Colors.white
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SvgPicture.asset(
+                              'assets/images/Edit.svg',
+                              color: AppColors.textPrimary
+                          ),
+                          SizedBox(width: 4), // kasih jarak sedikit antar ikon dan teks
+                          Text(
+                            'Comment',
+                            style: GoogleFonts.sora(
+                                fontSize: 13,
+                                color: AppColors.textPrimary
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.comment_outlined, size: 16),
-              label: const Text('Comment'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white,
-                side: const BorderSide(color: Colors.white70),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-            ),
           ],
         ),
       ),
+    )
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'package:PanenIn/features/forum/screens/answer_screen.dart';
 import 'package:PanenIn/features/forum/screens/forum_screen.dart';
 import 'package:PanenIn/features/maps/screens/maps_screen.dart';
 import 'package:flutter/material.dart';
@@ -32,6 +33,11 @@ class AppRouter {
         path: '/signup',
         name: 'signup',
         builder: (context, state) => const SignUpScreen(),
+      ),
+      GoRoute(
+        path: '/answer',
+        name: 'answer',
+        builder: (context, state) => const AnswerScreen(),
       ),
 
       // Shell route untuk halaman dengan bottom navigation bar

@@ -1,19 +1,18 @@
 import 'package:PanenIn/config/constants/colors.dart';
-import 'package:PanenIn/features/forum/widgets/ForumPostCard.dart';
 import 'package:PanenIn/shared/widgets/appbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class ForumScreen extends StatefulWidget {
-  const ForumScreen({Key? key}) : super(key: key);
+class AnswerScreen extends StatefulWidget {
+  const AnswerScreen({Key? key}) : super(key: key);
 
   @override
-  State<ForumScreen> createState() => _ForumScreenState();
+  State<AnswerScreen> createState() => _AnswerScreen();
 }
 
-class _ForumScreenState extends State<ForumScreen> {
+class _AnswerScreen extends State<AnswerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -79,56 +78,6 @@ class _ForumScreenState extends State<ForumScreen> {
                 ),
               ],
             ),
-            SizedBox(height: 15),
-            ForumPostCard(
-              question: 'What Are the Benefits of Using Soil Moisture Sensors for Plant Growth?',
-              author: 'Pa***n',
-              expertName: 'Dr. Agr. Siti Masaroh',
-              commentCount: 0,
-            ),
-            SizedBox(height: 15),
-            ForumPostCard(
-              question: 'What Are the Benefits of Using Soil Moisture Sensors for Plant Growth?',
-              author: 'Pa***n',
-              expertName: 'Dr. Agr. Siti Masaroh',
-              commentCount: 0,
-            ),
-            SizedBox(height: 15),
-            ForumPostCard(
-              question: 'What Are the Benefits of Using Soil Moisture Sensors for Plant Growth?',
-              author: 'Pa***n',
-              expertName: 'Dr. Agr. Siti Masaroh',
-              commentCount: 0,
-            ),
-            SizedBox(height: 15),
-            ForumPostCard(
-              question: 'What Are the Benefits of Using Soil Moisture Sensors for Plant Growth?',
-              author: 'Pa***n',
-              expertName: 'Dr. Agr. Siti Masaroh',
-              commentCount: 0,
-            ),
-            SizedBox(height: 15),
-            ForumPostCard(
-              question: 'What Are the Benefits of Using Soil Moisture Sensors for Plant Growth?',
-              author: 'Pa***n',
-              expertName: 'Dr. Agr. Siti Masaroh',
-              commentCount: 0,
-            ),
-            SizedBox(height: 15),
-            ForumPostCard(
-              question: 'What Are the Benefits of Using Soil Moisture Sensors for Plant Growth?',
-              author: 'Pa***n',
-              expertName: 'Dr. Agr. Siti Masaroh',
-              commentCount: 0,
-            ),
-            SizedBox(height: 15),
-            ForumPostCard(
-              question: 'What Are the Benefits of Using Soil Moisture Sensors for Plant Growth?',
-              author: 'Pa***n',
-              expertName: 'Dr. Agr. Siti Masaroh',
-              commentCount: 0,
-            ),
-            SizedBox(height: 15),
           ],
         ),
       ),
