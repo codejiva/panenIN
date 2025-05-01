@@ -34,49 +34,57 @@ class _ForumScreenState extends State<ForumScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                        'Community Forum',
-                        style: GoogleFonts.montserrat(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold
-                        )
-                    ),
-                    Text(
-                        'Where Ideas Grow and Connections Matter!',
-                        style: GoogleFonts.montserrat(
-                            fontSize: 13,
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w300
-                        )
-                    ),
-                  ],
-                ),
-                SizedBox(
-                  width: 66,
-                  height: 28,
-                  child: ElevatedButton(
-                    onPressed: () => context.goNamed('signup'),
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.zero, // Buat padding button pas dengan size kecil
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SvgPicture.asset('assets/images/Edit.svg'),
-                        SizedBox(width: 4), // kasih jarak sedikit antar ikon dan teks
-                        Text(
-                          'Ask',
-                          style: GoogleFonts.sora(
-                            fontSize: 13,
+                Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child:Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                              'Community Forum',
+                              style: GoogleFonts.montserrat(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold
+                              )
+                          ),
+                          Text(
+                              'Where Ideas Grow and Connections Matter!',
+                              style: GoogleFonts.montserrat(
+                                  fontSize: 13,
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w300
+                              )
+                          ),
+                        ],
+                      ),
+                      ),
+                      SizedBox(
+                        width: 66,
+                        height: 28,
+                        child: ElevatedButton(
+                          onPressed: () => context.goNamed('signup'),
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.zero, // Buat padding button pas dengan size kecil
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SvgPicture.asset('assets/images/Edit.svg'),
+                              SizedBox(width: 4), // kasih jarak sedikit antar ikon dan teks
+                              Text(
+                                'Ask',
+                                style: GoogleFonts.sora(
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
+                      ),
+                    ],
+                  )
+                )
               ],
             ),
             SizedBox(height: 15),
