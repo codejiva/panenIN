@@ -26,61 +26,123 @@ class _AnswerScreen extends State<AnswerScreen> {
           // Tambahkan aksi khusus untuk profile di halaman ini
         },
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+      body: Container(
+        color: AppColors.secondary,
         child: Column(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                        'Community Forum',
-                        style: GoogleFonts.montserrat(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold
-                        )
-                    ),
-                    Text(
-                        'Where Ideas Grow and Connections Matter!',
-                        style: GoogleFonts.montserrat(
-                            fontSize: 13,
-                            color: AppColors.primary,
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child:Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                          'What Are the Benefits of Using Soil Moisture',
+                          style: GoogleFonts.montserrat(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold
+                          )
+                      ),
+                      Text(
+                          'Sensors for Plant Growth?',                       style: GoogleFonts.montserrat(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold
+                      )
+                      ),
+                      Text(
+                        'Question from: Fa***n',
+                        style: GoogleFonts.sora(
+                            fontSize: 10,
                             fontWeight: FontWeight.w300
-                        )
+                        ),
+                      ),
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'Date: ',
+                              style: GoogleFonts.sora(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12),
+                            ),
+                            TextSpan(
+                              text: 'April 26, 2025',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w400,
+                                  fontSize: 12
+                              ),
+                            ),
+                            TextSpan(
+                              text: ' | ',
+                            ),
+                            TextSpan(
+                              text: 'Time: ',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12
+                              ),
+                            ),
+                            TextSpan(
+                              text: '18:30',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w400,
+                                  fontSize: 12
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Row(
+                        children: [
+
+                        ],
+                      )
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey,
+                      blurRadius: 4,
+                      offset: Offset(0, -3), // changes position of shadow
                     ),
                   ],
-                ),
-                SizedBox(
-                  width: 66,
-                  height: 28,
-                  child: ElevatedButton(
-                    onPressed: () => context.goNamed('signup'),
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.zero, // Buat padding button pas dengan size kecil
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SvgPicture.asset('assets/images/Edit.svg'),
-                        SizedBox(width: 4), // kasih jarak sedikit antar ikon dan teks
-                        Text(
-                          'Ask',
-                          style: GoogleFonts.sora(
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(32),
+                    topRight: Radius.circular(32),
                   ),
                 ),
-              ],
-            ),
+                child: SizedBox.expand(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: 10,),
+                          Text(
+                            'Answered by: Dr. Agr. Siti Maesaroh',
+                            style: GoogleFonts.sora(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12
+                            )
+                          )
+                      ],
+                    ),
+                  )
+                ),
+              ),
+            )
           ],
         ),
-      ),
+      )
     );
   }
 }

@@ -112,6 +112,11 @@ class ForumPostCard extends StatelessWidget {
                 ],
               ),
             ),
+            SizedBox(height: 15),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 48.0),
+              child: Divider(),
+            )
           ],
         ),
       ),
