@@ -1,5 +1,6 @@
 import 'package:PanenIn/features/forum/screens/answer_screen.dart';
 import 'package:PanenIn/features/forum/screens/forum_screen.dart';
+import 'package:PanenIn/features/forum/screens/question_form_screen.dart';
 import 'package:PanenIn/features/maps/screens/maps_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -34,11 +35,7 @@ class AppRouter {
         name: 'signup',
         builder: (context, state) => const SignUpScreen(),
       ),
-      GoRoute(
-        path: '/answer',
-        name: 'answer',
-        builder: (context, state) => const AnswerScreen(),
-      ),
+
 
       // Shell route untuk halaman dengan bottom navigation bar
       ShellRoute(
@@ -73,11 +70,22 @@ class AppRouter {
             path: '/forum',
             name: 'forum',
             builder: (context, state) => const ForumScreen(),
+            routes: [
+              GoRoute(
+                path: 'answer',
+                name: 'answer',
+                builder: (context, state) => const AnswerScreen(),
+              ),
+              GoRoute(
+                path: 'questionform',
+                name: 'ask',
+                builder: (context, state) => const QuestionFormScreen(),
+              ),
+            ],
           ),
         ],
       ),
     ],
-    //errorBuilder: (context, state) => const NotFoundScreen(),
   );
 
   // Helper untuk memeriksa status login user
@@ -112,7 +120,8 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
   Widget build(BuildContext context) {
     // Tentukan index berdasarkan path saat ini
     final String location = GoRouterState.of(context).uri.path;
-    _currentIndex = _routes.contains(location) ? _routes.indexOf(location) : 0;
+    _currentIndex = _routes.indexWhere((route) => location.startsWith(route));
+    if (_currentIndex == -1) _currentIndex = 0;
 
     return Scaffold(
       body: widget.child,

@@ -63,7 +63,7 @@ class _ForumScreenState extends State<ForumScreen> {
                         width: 66,
                         height: 28,
                         child: ElevatedButton(
-                          onPressed: () => context.goNamed('signup'),
+                          onPressed: () => context.goNamed('ask'),
                           style: ElevatedButton.styleFrom(
                             padding: EdgeInsets.zero, // Buat padding button pas dengan size kecil
                           ),

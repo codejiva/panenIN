@@ -184,7 +184,64 @@ class _AnswerScreen extends State<AnswerScreen> {
                               thickness: 0.75,
                               color: Colors.black,
                             ),
-
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,  // Align items to the top
+                              children: [
+                                SvgPicture.asset('assets/images/Check_ring.svg'),
+                                SizedBox(width: 8),  // Add some spacing
+                                Expanded(  // Add Expanded to allow text to wrap
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                          "Doctor's Answer:",
+                                          style: GoogleFonts.montserrat(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12
+                                          )
+                                      ),
+                                      Text(
+                                          "Responded by: Dr. Agr. Siti Maesaroh",
+                                          style: GoogleFonts.sora(
+                                              fontWeight: FontWeight.w300,
+                                              fontSize: 10
+                                          )
+                                      ),
+                                      Text(
+                                          "Date: April 26, 2025 | Time: 21:15",
+                                          style: GoogleFonts.sora(
+                                              fontWeight: FontWeight.w300,
+                                              fontSize: 10
+                                          )
+                                      ),
+                                      Text(
+                                        'Hello, good evening,\n\n'
+                                            'Soil moisture sensors are devices that measure the water content in the soil. They play an important role in modern agriculture by providing real-time data on soil moisture levels. Here are some benefits of using them:\n'
+                                            '• Optimizing irrigation: Ensures plants receive the right amount of water — not too much, not too little.\n'
+                                            '• Improving plant health: Proper watering helps in better root development and overall plant growth.\n'
+                                            '• Increasing crop yields: Healthier plants lead to more productive harvests.\n'
+                                            '• Saving water: By avoiding over-irrigation, you can conserve water and reduce costs.\n\n'
+                                            'How They Work: Soil moisture sensors typically use electrical resistance or dielectric properties to detect the amount of moisture present. They send signals that can be read manually or integrated into automatic irrigation systems.\n\n'
+                                            'Tips for Using Them Effectively:\n'
+                                            '• Place sensors at different depths to monitor moisture throughout the root zone.\n'
+                                            '• Regularly calibrate the sensors for accuracy.\n'
+                                            '• Combine soil moisture readings with weather data for better irrigation planning.\n'
+                                            '• Start with a trial area before deploying widely across your farm.\n\n'
+                                            'Using soil moisture sensors wisely can significantly support smart farming practices, making agriculture more efficient and sustainable.\n'
+                                            'Hope this helps and good luck with your planting!',
+                                        style: GoogleFonts.inter(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 12,
+                                        ),
+                                        softWrap: true,
+                                        textAlign: TextAlign.justify,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(height: 10),
+                              ],
+                            ),
                           ],
                         ),
                       )
