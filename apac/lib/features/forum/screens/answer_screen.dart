@@ -17,14 +17,7 @@ class _AnswerScreen extends State<AnswerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: SharedAppBar(
-          onNotificationPressed: () {
-            print('Notifikasi ditekan dari HomeScreen!');
-            // Tambahkan aksi khusus untuk notifikasi di halaman ini
-          },
-          onProfilePressed: () {
-            print('Profile ditekan dari HomeScreen!');
-            // Tambahkan aksi khusus untuk profile di halaman ini
-          },
+          cornerColor:AppColors.secondary
         ),
         body: Container(
           color: AppColors.secondary,

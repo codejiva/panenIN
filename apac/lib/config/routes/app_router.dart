@@ -54,7 +54,7 @@ class AppRouter {
           GoRoute(
             path: '/maps',
             name: 'maps',
-            builder: (context, state) => const MapsScreen(),
+            builder: (context, state) => const MapScreen(),
           ),
           GoRoute(
             path: '/monitoring',

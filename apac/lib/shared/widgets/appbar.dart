@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:PanenIn/config/constants/colors.dart';
 
 class SharedAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onNotificationPressed;
   final VoidCallback? onProfilePressed;
+  final Color cornerColor;
 
   const SharedAppBar({
     Key? key,
     this.onNotificationPressed,
     this.onProfilePressed,
+    this.cornerColor = Colors.white,
   }) : super(key: key);
 
   @override
@@ -17,10 +20,7 @@ class SharedAppBar extends StatelessWidget implements PreferredSizeWidget {
       preferredSize: const Size.fromHeight(kToolbarHeight),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: const BorderRadius.vertical(
-            bottom: Radius.circular(15.0),
-          ),
+          color: cornerColor,
           boxShadow: [
             BoxShadow(
               color: Colors.grey.withOpacity(0.5),
