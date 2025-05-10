@@ -73,245 +73,64 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Padding(
                   padding: EdgeInsets.all(10),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Column(
-                        children: [
-                          Container(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Icon(
-                                      Icons.thermostat,
-                                      size: 30,
-                                    ),
-                                    Container(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Temperature',
-                                            style: GoogleFonts.inter(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600
-                                            ),
-                                          ),
-                                          Text(
-                                            '34°C',
-                                            style: GoogleFonts.inter(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600
-                                            ),
-                                          ),
-                                          Text(
-                                            'High – risk of heat stress',
-                                            style: GoogleFonts.inter(
-                                                fontSize: 8,
-                                                fontWeight: FontWeight.w400
-                                            ),
-                                          )
-                                        ],
-                                      ),
-                                    ),
-                                    Icon(
-                                      Icons.thumb_down,
-                                      color: Colors.red,
-                                      size: 20,
-                                    )
-                                  ],
-                                ),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Icon(
-                                      Icons.water_drop_outlined,
-                                      size: 30,
-                                    ),
-                                    Container(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Soil Moisture',
-                                            style: GoogleFonts.inter(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600
-                                            ),
-                                          ),
-                                          Text(
-                                            '20%',
-                                            style: GoogleFonts.inter(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600
-                                            ),
-                                          ),
-                                          Text(
-                                            'Low – below optimal range of 30–40%',
-                                            style: GoogleFonts.inter(
-                                                fontSize: 8,
-                                                fontWeight: FontWeight.w400
-                                            ),
-                                          )
-                                        ],
-                                      ),
-                                    ),
-                                    Icon(
-                                      Icons.thumb_down,
-                                      color: Colors.red,
-                                      size: 20,
-                                    )
-                                  ],
-                                ),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Icon(
-                                      Icons.thermostat,
-                                      size: 30,
-                                    ),
-                                    Container(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Soil pH',
-                                            style: GoogleFonts.inter(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600
-                                            ),
-                                          ),
-                                          Text(
-                                            '5.4',
-                                            style: GoogleFonts.inter(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600
-                                            ),
-                                          ),
-                                          Text(
-                                            'Slightly acidic – ideal: 6.0–6.8',
-                                            style: GoogleFonts.inter(
-                                                fontSize: 8,
-                                                fontWeight: FontWeight.w400
-                                            ),
-                                          )
-                                        ],
-                                      ),
-                                    ),
-                                    Icon(
-                                      Icons.thumb_down,
-                                      color: Colors.red,
-                                      size: 20,
-                                    )
-                                  ],
-                                ),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    Icon(
-                                      Icons.thermostat,
-                                      size: 30,
-                                    ),
-                                    Container(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Light Intensity',
-                                            style: GoogleFonts.inter(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600
-                                            ),
-                                          ),
-                                          Text(
-                                            '78%',
-                                            style: GoogleFonts.inter(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600
-                                            ),
-                                          ),
-                                          Text(
-                                            'Optimal for photosynthesis',
-                                            style: GoogleFonts.inter(
-                                                fontSize: 8,
-                                                fontWeight: FontWeight.w400
-                                            ),
-                                          )
-                                        ],
-                                      ),
-                                    ),
-                                    Icon(
-                                      Icons.thumb_down,
-                                      color: Colors.red,
-                                      size: 20,
-                                    )
-                                  ],
-                                )
-                              ],
-                            ),
-                          )
-                        ],
+                      // kolom kiri
+                      Expanded(
+                        flex: 1,
+                        child: SingleChildScrollView(
+                          child: Column(
+                            children: [
+                              _buildIndicatorTile(
+                                icon: Icons.thermostat,
+                                title: 'Temperature',
+                                value: '34°C',
+                                description: 'High – risk of heat stress',
+                              ),
+                              _buildIndicatorTile(
+                                icon: Icons.water_drop_outlined,
+                                title: 'Soil Moisture',
+                                value: '20%',
+                                description: 'Low – below optimal range of 30–40%',
+                              ),
+                              _buildIndicatorTile(
+                                icon: Icons.thermostat,
+                                title: 'Soil pH',
+                                value: '5.4',
+                                description: 'Slightly acidic – ideal: 6.0–6.8',
+                              ),
+                              _buildIndicatorTile(
+                                icon: Icons.thermostat,
+                                title: 'Light Intensity',
+                                value: '78%',
+                                description: 'Optimal for photosynthesis',
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      SvgPicture.asset('assets/images/Line 3'),
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          Container(
-                            child: Column(
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Icon(
-                                      Icons.thermostat,
-                                      size: 30,
-                                    ),
-                                    Container(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Temperature',
-                                            style: GoogleFonts.inter(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600
-                                            ),
-                                          ),
-                                          Text(
-                                            '34°C',
-                                            style: GoogleFonts.inter(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600
-                                            ),
-                                          ),
-                                          Text(
-                                            'High – risk of heat stress',
-                                            style: GoogleFonts.inter(
-                                                fontSize: 8,
-                                                fontWeight: FontWeight.w400
-                                            ),
-                                          )
-                                        ],
-                                      ),
-                                    ),
-                                    Icon(
-                                      Icons.thumb_down,
-                                      color: Colors.red,
-                                      size: 20,
-                                    )
-                                  ],
-                                )
-                              ],
-                            ),
-                          )
-                        ],
-                      )
+
+                      SizedBox(width: 16), // jarak antar kolom
+
+                      // kolom kiri
+                      Expanded(
+                        flex: 1,
+                        child: SingleChildScrollView(
+                          child: Column(
+                            children: [
+                              _buildIndicatorTile(
+                                icon: Icons.thermostat,
+                                title: 'Temperature',
+                                value: '34°C',
+                                description: 'High – risk of heat stress',
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
-                  ),
+                  )
+
                 )
               ),
               SizedBox(height: 20),
@@ -416,6 +235,39 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildIndicatorTile({
+    required IconData icon,
+    required String title,
+    required String value,
+    required String description,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 30),
+          SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600)),
+                Text(value,
+                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600)),
+                Text(description,
+                    style: GoogleFonts.inter(fontSize: 8, fontWeight: FontWeight.w400)),
+              ],
+            ),
+          ),
+          Icon(Icons.thumb_down, color: Colors.red, size: 20),
+        ],
+      ),
+    );
+  }
+
+
   Widget _legendItem(Color color, String label) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -443,7 +295,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Pindahkan fungsi showingSections ke dalam kelas
   List<PieChartSectionData> showingSections() {
     return List.generate(3, (i) {
       final isTouched = i == touchedIndex;

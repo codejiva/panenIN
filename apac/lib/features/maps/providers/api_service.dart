@@ -1,10 +1,10 @@
 // api_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:PanenIn/features/maps/providers/Village.dart';
+import 'package:PanenIn/features/maps/providers/village_model.dart';
 
 class ApiService {
-  static const String _baseUrl = 'http://10.0.2.2:5000/api';
+  static const String _baseUrl = 'http://192.168.1.100:5000/api';
 
   static Future<Village> fetchVillageData(String kabupaten) async {
     final response = await http.get(

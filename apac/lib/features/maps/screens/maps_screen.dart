@@ -1,6 +1,7 @@
+import 'package:PanenIn/shared/widgets/appbar.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:PanenIn/features/maps/providers/Village.dart';
+import 'package:PanenIn/features/maps/providers/village_model.dart';
 import 'package:PanenIn/features/maps/providers/api_service.dart';
 
 class MapScreen extends StatefulWidget {
@@ -16,10 +17,12 @@ class _MapScreenState extends State<MapScreen> {
   bool _isLoading = false;
   Village? _selectedVillage;
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
 
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -95,16 +98,15 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Peta Administrasi'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: _showSearchDialog,
-          ),
-        ],
+      appBar: SharedAppBar(
+        onNotificationPressed: () {
+          print('Notifikasi ditekan dari HomeScreen!');
+        },
+        onProfilePressed: () {
+          print('Profile ditekan dari HomeScreen!');
+        },
       ),
-      body: Stack(
+      body:Stack(
         children: [
           GoogleMap(
             onMapCreated: (controller) => mapController = controller,
@@ -115,15 +117,67 @@ class _MapScreenState extends State<MapScreen> {
             polygons: _polygons,
             myLocationEnabled: true,
           ),
+          // Search box positioned at the top
+          Positioned(
+            top: 40,
+            left: 16,
+            right: 16,
+            child: _buildSearchBox(),
+          ),
           if (_isLoading)
             const Center(child: CircularProgressIndicator()),
-          if (_selectedVillage != null)
-            Positioned(
-              bottom: 20,
-              left: 20,
-              right: 20,
-              child: _buildVillageInfoCard(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchBox() {
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              focusNode: _searchFocusNode,
+              decoration: InputDecoration(
+                hintText: 'Search...',
+                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                hintStyle: TextStyle(color: Colors.grey),
+                border: InputBorder.none,
+                fillColor: Colors.transparent,
+                filled: false,
+              ),
+              onSubmitted: (value) {
+                _searchVillage(value.trim());
+              },
             ),
+          ),
+          Container(
+            width: 78,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.green,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.search, color: Colors.white),
+              onPressed: () {
+                _searchVillage(_searchController.text.trim());
+              },
+            ),
+          ),
         ],
       ),
     );
@@ -136,6 +190,7 @@ class _MapScreenState extends State<MapScreen> {
         padding: const EdgeInsets.all(12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               _selectedVillage!.name,
@@ -156,36 +211,6 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Future<void> _showSearchDialog() async {
-    await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cari Kabupaten'),
-        content: TextField(
-          controller: _searchController,
-          decoration: const InputDecoration(
-            hintText: 'Masukkan nama kabupaten',
-            border: OutlineInputBorder(),
-          ),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _searchVillage(_searchController.text.trim());
-            },
-            child: const Text('Cari'),
-          ),
-        ],
       ),
     );
   }
