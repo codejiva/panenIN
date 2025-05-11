@@ -47,8 +47,8 @@ cd panenIN
 **Install project with npm**
 
 ```bash
-  cd backend-agribud
-  npm install
+cd backend-agribud
+npm install
 ```
 
 **Configuration**
