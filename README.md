@@ -82,7 +82,7 @@ Server jalan di port 5000 ya, warga!
 
 ## Demo
 
-prototype (figma): https://www.figma.com/design/ir6gsvOYALi54kceyhFaln/APAC?node-id=0-1&t=VdTtZ82sClfdr0sV-1
+1. [https://www.figma.com/design/ir6gsvOYALi54kceyhFaln/APAC?node-id=0-1&t=VdTtZ82sClfdr0sV-1](Prototype (Figma))
 
-video (YouTube): https://www.youtube.com/watch?v=LsnnMpTKxtQ
+2. [https://www.youtube.com/watch?v=LsnnMpTKxtQ](YouTube)
 
