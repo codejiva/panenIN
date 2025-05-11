@@ -14,7 +14,7 @@ Empowering Agriculture with GenAI, Local Wisdom, and Real-Time Insights
 - [@codejiva](https://github.com/codejiva) as IoT & Backend Developer
 - [@zayanhafizh](https://github.com/zayanhafizh) as Mobile Developer
 - [@ramadhakevin](https://github.com/ramadhakevin) as UI/UX Designer
-- [@wafi](https://github.com/codejiva) as Project Manager & Data Scientist
+- [@wafiaulia07](https://github.com/codejiva) as Project Manager & Data Scientist
 
 
 
