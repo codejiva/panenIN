@@ -66,7 +66,6 @@ npm run dev
 if success:
 ```
 Server jalan di port 5000 ya, warga!
-
 ```
 
 *2. Mobile (Flutter)*
