@@ -17,7 +17,8 @@
     "express": "^5.1.0",
     "mysql2": "^3.14.1",
     "shapefile": "^0.6.6",
-    "simplify-geojson": "^1.0.5"
+    "simplify-geojson": "^1.0.5",
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
