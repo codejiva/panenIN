@@ -1,5 +1,5 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const config = require('./config'); // pastikan ini mengarah ke file yang punya geminiApiKey
+const config = require('./config'); // ini buat nyambungin ke API keynya
 
 const genAI = new GoogleGenerativeAI(config.geminiApiKey);
 

@@ -10,7 +10,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 
 const app = express();
-const server = http.Server(app); // ganti app.listen jadi server.listen
+const server = http.Server(app); // ganti app.listen jadi server.listen kalo mau dijalanin. nggak tau gue juga kenapa ini aaowkoakwoakwokawk
 const io = new Server(server, {
   cors: {
     origin: "*",
@@ -18,7 +18,7 @@ const io = new Server(server, {
   }
 });
 
-// Middleware dan routes
+// middleware sama route gue taro sini. jangan ada yang diubah yak
 app.use(cors());
 app.use(express.json());
 
@@ -27,10 +27,11 @@ app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoute);
 app.use('/api/dashboard', dashboardRoutes);
 
-// Simulasi data sensor setiap 3 detik
+// ini buat simulasi datanya
 io.on('connection', (socket) => {
   console.log('Klien terkoneksi:', socket.id);
 
+  // simulasi aja yak
   const interval = setInterval(() => {
     const sensorData = {
       suhu: (Math.random() * 10 + 25).toFixed(2),      // 25 - 35 °C
@@ -45,7 +46,7 @@ io.on('connection', (socket) => {
   });
 });
 
-// Load shapefile lalu mulai server
+// ini buat load shp. kalo udah, jalanin servernya
 loadShapefile().then(() => {
   server.listen(port, () => console.log(`Server jalan di port ${port} ya, warga!`));
 });

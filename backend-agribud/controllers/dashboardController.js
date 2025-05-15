@@ -1,4 +1,3 @@
-// controllers/dashboardController.js
 const generateDummySensorData = require('../utils/sensor');
 
 exports.getDashboardData = (req, res) => {
