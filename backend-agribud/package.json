@@ -13,8 +13,11 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "bcryptjs": "^3.0.2",
+    "chalk": "^4.1.2",
+    "clear": "^0.1.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "figlet": "^1.8.1",
     "mysql2": "^3.14.1",
     "shapefile": "^0.6.6",
     "simplify-geojson": "^1.0.5",
