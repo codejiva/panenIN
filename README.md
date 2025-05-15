@@ -31,7 +31,9 @@ Empowering Agriculture with GenAI, Local Wisdom, and Real-Time Insights
 
 **Client:** Flutter
 
-**Server:** NodeJS, ExpressJS, GeoJSON
+**Server:** NodeJS, ExpressJS, GeoJSON, Socket.io
+
+**Internet of Thing:** Arduino Uno
 
 
 ## Installation
