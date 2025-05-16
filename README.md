@@ -75,9 +75,8 @@ Server jalan di port 5000 ya, warga!
 **Configuration**
 ```
 // android/app/src/main/res/AndroidManifest.xml
-module.exports = {
-  geminiApiKey: 'PASTE_API_KEY_MAKERSUITE_HERE'
-};
+<meta-data android:name="com.google.android.geo.API_KEY"
+            android:value="YOUR _API_KEY"/>
 ```
 
 **Get Dependencies**
