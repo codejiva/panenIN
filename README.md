@@ -72,6 +72,24 @@ Server jalan di port 5000 ya, warga!
 
 *2. Mobile (Flutter)*
 
+**Configuration**
+```
+// android/app/src/main/res/AndroidManifest.xml
+module.exports = {
+  geminiApiKey: 'PASTE_API_KEY_MAKERSUITE_HERE'
+};
+```
+
+**Get Dependencies**
+```
+flutter pub get
+```
+
+**Run project**
+```
+flutter run
+```
+
 ## Our Stakeholders
 
 - Farmer Communities
