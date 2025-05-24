@@ -31,7 +31,9 @@ Empowering Agriculture with GenAI, Local Wisdom, and Real-Time Insights
 
 **Client:** Flutter
 
-**Server:** NodeJS, ExpressJS, GeoJSON
+**Server:** NodeJS, ExpressJS, GeoJSON, Socket.io
+
+**Internet of Thing:** Arduino Uno
 
 
 ## Installation
@@ -69,6 +71,23 @@ Server jalan di port 5000 ya, warga!
 ```
 
 *2. Mobile (Flutter)*
+
+**Configuration**
+```
+// android/app/src/main/res/AndroidManifest.xml
+<meta-data android:name="com.google.android.geo.API_KEY"
+            android:value="YOUR _API_KEY"/>
+```
+
+**Get Dependencies**
+```
+flutter pub get
+```
+
+**Run project**
+```
+flutter run
+```
 
 ## Our Stakeholders
 
