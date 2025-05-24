@@ -1,1 +1,7 @@
 .pio
+backend-agribud/shapefiles/
+backend/agribuddy/node_modules/
+/node_modules
+/arduino/.pio
+/arduino/.vscode
+*.env
