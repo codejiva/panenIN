@@ -2,6 +2,8 @@ import 'package:PanenIn/features/forum/screens/answer_screen.dart';
 import 'package:PanenIn/features/forum/screens/forum_screen.dart';
 import 'package:PanenIn/features/forum/screens/question_form_screen.dart';
 import 'package:PanenIn/features/maps/screens/maps_screen.dart';
+import 'package:PanenIn/features/monitoring/screens/landdetailcreen_screen.dart';
+import 'package:PanenIn/features/monitoring/screens/listland_screen.dart' hide FieldStatus, FieldData;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/screens/sign_in_screen.dart';
@@ -19,7 +21,7 @@ class AppRouter {
     initialLocation: '/',
     debugLogDiagnostics: true,
     routes: [
-      // Routes tanpa bottom navigation bar
+      // Routes without bottom navigation bar
       GoRoute(
         path: '/',
         name: 'onboarding',
@@ -36,8 +38,7 @@ class AppRouter {
         builder: (context, state) => const SignUpScreen(),
       ),
 
-
-      // Shell route untuk halaman dengan bottom navigation bar
+      // Shell route for pages with bottom navigation bar
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
         builder: (context, state, child) {
@@ -47,29 +48,54 @@ class AppRouter {
           GoRoute(
             path: '/home',
             name: 'home',
-            builder: (context, state) => const HomeScreen(),
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: HomeScreen(),
+            ),
           ),
-          // Tambahkan route lain sesuai menu di bottom navbar
-          // Jika halaman belum dibuat, buat halaman kosong (placeholder) dulu
           GoRoute(
             path: '/maps',
             name: 'maps',
-            builder: (context, state) => const MapScreen(),
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: MapScreen(),
+            ),
           ),
           GoRoute(
             path: '/monitoring',
             name: 'monitoring',
-            builder: (context, state) => const Scaffold(body: Center(child: Text('Monitoring Screen'))),
-          ),
-          GoRoute(
-            path: '/profile',
-            name: 'profile',
-            builder: (context, state) => const Scaffold(body: Center(child: Text('Profile Screen'))),
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: ListLandDashboard(),
+            ),
+            routes: [
+              GoRoute(
+                path: 'detail/:landId',
+                name: 'detail',
+                builder: (context, state) {
+                  final landId = state.pathParameters['landId'] ?? '';
+                  final landName = state.uri.queryParameters['landName'] ?? 'Unknown Land';
+                  final statusStr = state.uri.queryParameters['status'] ?? 'healthy';
+
+                  final status = switch (statusStr.toLowerCase()) {
+                    'unhealthy' => FieldStatus.unhealthy,
+                    'critical' => FieldStatus.critical,
+                    _ => FieldStatus.healthy,
+                  };
+
+                  return LandDetailScreen(
+                    landId: landId,
+                    landName: landName,
+                    currentStatus: status,
+                    fieldData: state.extra is FieldData ? state.extra as FieldData : null,
+                  );
+                },
+              ),
+            ],
           ),
           GoRoute(
             path: '/forum',
             name: 'forum',
-            builder: (context, state) => const ForumScreen(),
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: ForumScreen(),
+            ),
             routes: [
               GoRoute(
                 path: 'answer',
@@ -87,19 +113,12 @@ class AppRouter {
       ),
     ],
   );
-
-  // Helper untuk memeriksa status login user
-  static bool checkIfUserIsLoggedIn() {
-    // Implementasi logika untuk memeriksa status login
-    return false; // Ganti dengan logika sebenarnya
-  }
 }
 
-// Widget Scaffold dengan Bottom Navigation Bar
 class ScaffoldWithNavBar extends StatefulWidget {
   final Widget child;
 
-  const ScaffoldWithNavBar({Key? key, required this.child}) : super(key: key);
+  const ScaffoldWithNavBar({super.key, required this.child});
 
   @override
   State<ScaffoldWithNavBar> createState() => _ScaffoldWithNavBarState();
@@ -108,18 +127,18 @@ class ScaffoldWithNavBar extends StatefulWidget {
 class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
   int _currentIndex = 0;
 
-  final List<String> _routes = [
+  static const List<String> _routes = [
     '/home',
     '/maps',
     '/monitoring',
-    '/profile',
     '/forum',
   ];
 
   @override
   Widget build(BuildContext context) {
-    // Tentukan index berdasarkan path saat ini
-    final String location = GoRouterState.of(context).uri.path;
+    final location = GoRouterState.of(context).uri.path;
+
+    // Find the best matching route
     _currentIndex = _routes.indexWhere((route) => location.startsWith(route));
     if (_currentIndex == -1) _currentIndex = 0;
 
@@ -128,8 +147,9 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
       bottomNavigationBar: BottomNavBar(
         currentIndex: _currentIndex,
         onTap: (index) {
-          // Navigasi ketika item bottom bar ditekan
-          context.go(_routes[index]);
+          if (_currentIndex != index) {
+            context.go(_routes[index]);
+          }
         },
       ),
     );

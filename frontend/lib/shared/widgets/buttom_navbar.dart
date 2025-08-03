@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -32,12 +33,12 @@ class BottomNavBar extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(0, Icons.home_outlined, Icons.home, 'Home'),
-              _buildNavItem(1, Icons.map_outlined, Icons.map, 'Maps'),
+              _buildNavItem(0, 'assets/images/home.svg', 'Home'),
+              _buildNavItem(1, 'assets/images/Map.svg', 'Map'),
               // Empty space for the center button
               const SizedBox(width: 50),
-              _buildNavItem(3, Icons.person_outline, Icons.person, 'Monitoring'),
-              _buildNavItem(4, Icons.forum_outlined, Icons.forum, 'Forum'),
+              _buildNavItem(3, 'assets/images/Vector.svg', 'Monitoring'),
+              _buildNavItem(4, 'assets/images/Forum.svg', 'Forum'),
             ],
           ),
 
@@ -69,10 +70,14 @@ class BottomNavBar extends StatelessWidget {
                   child: InkWell(
                     onTap: () => onTap(2),
                     customBorder: const CircleBorder(),
-                    child: const Icon(
-                      Icons.eco_outlined,
-                      color: Colors.white,
-                      size: 28,
+                    child: Center(
+                      child: SvgPicture.asset(
+                        'assets/images/Chat.svg',
+                        color: Colors.white, // Changed to white for better contrast
+                        width: 28, // Increased size for better visibility
+                        height: 28,
+                        fit: BoxFit.contain, // Ensures proper scaling
+                      ),
                     ),
                   ),
                 ),
@@ -84,7 +89,7 @@ class BottomNavBar extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, IconData activeIcon, String label) {
+  Widget _buildNavItem(int index, String svgPath, String label) {
     final bool isSelected = currentIndex == index;
 
     return Material(
@@ -97,10 +102,12 @@ class BottomNavBar extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                isSelected ? activeIcon : icon,
+              SvgPicture.asset(
+                svgPath,
                 color: isSelected ? Colors.green[700] : Colors.grey[600],
-                size: 22,
+                width: 24,
+                height: 24,
+                fit: BoxFit.contain, // Added for consistent scaling
               ),
               const SizedBox(height: 4),
               Text(
