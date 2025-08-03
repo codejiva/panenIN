@@ -1,4 +1,4 @@
-import 'package:PanenIn/models/field_models.dart';
+import 'package:PanenIn/models/field_model.dart';
 import 'package:PanenIn/features/monitoring/providers/api_services.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';

@@ -37,7 +37,8 @@ class _HomeScreenState extends State<HomeScreen> {
             // Tambahkan aksi khusus untuk profile di halaman ini
           },
         ),
-        body: SingleChildScrollView(
+        body:
+        SingleChildScrollView(
           padding: EdgeInsets.all(10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

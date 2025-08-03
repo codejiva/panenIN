@@ -20,7 +20,7 @@ class SharedAppBar extends StatelessWidget implements PreferredSizeWidget {
       preferredSize: const Size.fromHeight(kToolbarHeight),
       child: Container(
         decoration: BoxDecoration(
-          color: cornerColor,
+          color: Colors.transparent,
           boxShadow: [
             BoxShadow(
               color: Colors.grey.withOpacity(0.5),

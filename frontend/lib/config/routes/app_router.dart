@@ -1,8 +1,10 @@
+import 'package:PanenIn/features/chatbot/screens/chatroom_screen.dart';
+import 'package:PanenIn/features/chatbot/screens/welcome_screen.dart';
 import 'package:PanenIn/features/forum/screens/answer_screen.dart';
 import 'package:PanenIn/features/forum/screens/forum_screen.dart';
 import 'package:PanenIn/features/forum/screens/question_form_screen.dart';
 import 'package:PanenIn/features/maps/screens/maps_screen.dart';
-import 'package:PanenIn/features/monitoring/screens/landdetailcreen_screen.dart';
+import 'package:PanenIn/features/monitoring/screens/landdetail_screen.dart';
 import 'package:PanenIn/features/monitoring/screens/listland_screen.dart' hide FieldStatus, FieldData;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -37,6 +39,11 @@ class AppRouter {
         name: 'signup',
         builder: (context, state) => const SignUpScreen(),
       ),
+      GoRoute(
+        path: '/chatroom',
+        name: 'chatroom',
+        builder: (context, state) => const PanenAIChatScreen(),
+      ),
 
       // Shell route for pages with bottom navigation bar
       ShellRoute(
@@ -57,6 +64,13 @@ class AppRouter {
             name: 'maps',
             pageBuilder: (context, state) => const NoTransitionPage(
               child: MapScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/chatbot',
+            name: 'chatbot',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: WelcomeChatScreen()
             ),
           ),
           GoRoute(
@@ -130,6 +144,7 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
   static const List<String> _routes = [
     '/home',
     '/maps',
+    '/chatbot',
     '/monitoring',
     '/forum',
   ];

@@ -1,6 +1,4 @@
-// File: lib/features/monitoring/services/field_health_api_service.dart
-
-import 'package:PanenIn/models/field_models.dart';
+import 'package:PanenIn/models/field_model.dart';
 
 class FieldHealthApiService {
   static const String baseUrl = 'your-api-base-url';
