@@ -5,6 +5,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:fl_chart/fl_chart.dart';
 
+// Enum untuk status sensor
+enum SensorStatus { good, warning, bad }
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
@@ -39,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         body:
         SingleChildScrollView(
-          padding: EdgeInsets.all(10),
+          padding: EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -48,93 +51,153 @@ class _HomeScreenState extends State<HomeScreen> {
                   'Dashboard Monitoring',
                   style: GoogleFonts.montserrat(
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: 18,
                   )
               ),
               Text(
                   'Start your smarter farming journey with technology!',
                   style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w300,
-                      fontSize: 12
+                      fontWeight: FontWeight.w400,
+                      fontSize: 14,
+                      color: Colors.grey[600]
                   )
               ),
-              SizedBox(height: 10),
+              SizedBox(height: 5),
               Container(
-                 decoration: BoxDecoration(
-                   boxShadow: [
-                     BoxShadow(
-                       color: Colors.grey,
-                       blurRadius: 2,
-                       offset: Offset(0, 3), // changes position of shadow
-                     ),
-                   ],
-                   borderRadius: BorderRadius.circular(12.0),
-                   color: Colors.white,
-                 ),
-                child: Padding(
-                  padding: EdgeInsets.all(10),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // kolom kiri
-                      Expanded(
-                        flex: 1,
-                        child: SingleChildScrollView(
-                          child: Column(
-                            children: [
-                              _buildIndicatorTile(
-                                icon: Icons.thermostat,
-                                title: 'Temperature',
-                                value: '34°C',
-                                description: 'High – risk of heat stress',
-                              ),
-                              _buildIndicatorTile(
-                                icon: Icons.water_drop_outlined,
-                                title: 'Soil Moisture',
-                                value: '20%',
-                                description: 'Low – below optimal range of 30–40%',
-                              ),
-                              _buildIndicatorTile(
-                                icon: Icons.thermostat,
-                                title: 'Soil pH',
-                                value: '5.4',
-                                description: 'Slightly acidic – ideal: 6.0–6.8',
-                              ),
-                              _buildIndicatorTile(
-                                icon: Icons.thermostat,
-                                title: 'Light Intensity',
-                                value: '78%',
-                                description: 'Optimal for photosynthesis',
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      SizedBox(width: 16), // jarak antar kolom
-
-                      // kolom kiri
-                      Expanded(
-                        flex: 1,
-                        child: SingleChildScrollView(
-                          child: Column(
-                            children: [
-                              _buildIndicatorTile(
-                                icon: Icons.thermostat,
-                                title: 'Temperature',
-                                value: '34°C',
-                                description: 'High – risk of heat stress',
-                              ),
-                            ],
-                          ),
-                        ),
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.2),
+                        blurRadius: 8,
+                        offset: Offset(0, 4),
                       ),
                     ],
-                  )
+                    borderRadius: BorderRadius.circular(16.0),
+                    color: Colors.white,
+                  ),
+                  child: Padding(
+                      padding: EdgeInsets.all(20),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          // Check if we have enough width for row layout
+                          bool useRowLayout = constraints.maxWidth > 600;
 
-                )
+                          if (useRowLayout) {
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Kolom kiri - Sensor Data
+                                Expanded(
+                                  flex: 2,
+                                  child: Column(
+                                    children: [
+                                      _buildSensorTile(
+                                        icon: Icons.thermostat_outlined,
+                                        title: 'Temperature',
+                                        value: '34°C',
+                                        description: 'High - risk of heat stress',
+                                        status: SensorStatus.bad,
+                                      ),
+                                      SizedBox(height: 16),
+                                      _buildSensorTile(
+                                        icon: Icons.water_drop_outlined,
+                                        title: 'Soil Moisture',
+                                        value: '20%',
+                                        description: 'Low - below optimal range of 30-40%',
+                                        status: SensorStatus.bad,
+                                      ),
+                                      SizedBox(height: 16),
+                                      _buildSensorTile(
+                                        icon: Icons.science_outlined,
+                                        title: 'Soil pH',
+                                        value: '5.4',
+                                        description: 'Slightly acidic - ideal: 6.0-6.8',
+                                        status: SensorStatus.bad,
+                                      ),
+                                      SizedBox(height: 16),
+                                      _buildSensorTile(
+                                        icon: Icons.wb_sunny_outlined,
+                                        title: 'Light Intensity',
+                                        value: '78%',
+                                        description: 'Optimal for photosynthesis',
+                                        status: SensorStatus.good,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                SizedBox(width: 16),
+
+                                // Kolom kanan - Plant Status & Recommendations
+                                Expanded(
+                                  flex: 2,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      _buildPlantStatusSection(),
+                                      SizedBox(height: 20),
+                                      _buildRecommendationSection(),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          } else {
+                            // Stack vertically for smaller screens
+                            return Column(
+                              children: [
+                                _buildPlantStatusSection(),
+                                SizedBox(height: 20),
+                                // Sensor Data
+                                _buildSensorTile(
+                                  icon: Icons.thermostat_outlined,
+                                  title: 'Temperature',
+                                  value: '34°C',
+                                  description: 'High - risk of heat stress',
+                                  status: SensorStatus.bad,
+                                ),
+                                SizedBox(height: 16),
+                                _buildSensorTile(
+                                  icon: Icons.water_drop_outlined,
+                                  title: 'Soil Moisture',
+                                  value: '20%',
+                                  description: 'Low - below optimal range of 30-40%',
+                                  status: SensorStatus.bad,
+                                ),
+                                SizedBox(height: 16),
+                                _buildSensorTile(
+                                  icon: Icons.science_outlined,
+                                  title: 'Soil pH',
+                                  value: '5.4',
+                                  description: 'Slightly acidic - ideal: 6.0-6.8',
+                                  status: SensorStatus.bad,
+                                ),
+                                SizedBox(height: 16),
+                                _buildSensorTile(
+                                  icon: Icons.wb_sunny_outlined,
+                                  title: 'Light Intensity',
+                                  value: '78%',
+                                  description: 'Optimal for photosynthesis',
+                                  status: SensorStatus.good,
+                                ),
+                                SizedBox(height: 24),
+                                // Plant Status & Recommendations
+                                _buildRecommendationSection(),
+                              ],
+                            );
+                          }
+                        },
+                      )
+                  )
               ),
               SizedBox(height: 20),
+              Text(
+                  'The area around you!',
+                  style: GoogleFonts.montserrat(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14
+                  )
+              ),
               Container(
                 height: 200, // Tinggi peta
                 width: double.infinity, // Lebar penuh
@@ -218,9 +281,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               children: [
                                 _legendItem(Colors.green[800]!, 'Healthy'),
                                 SizedBox(height: 10),
-                                _legendItem(Colors.green[200]!, 'Unhealthy'),
+                                _legendItem(Colors.orange, 'Unhealthy'),
                                 SizedBox(height: 10),
-                                _legendItem(Colors.red[300]!, 'Critical'),
+                                _legendItem(Colors.red, 'Critical'),
                               ],
                             ),
                           ),
@@ -236,38 +299,253 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildIndicatorTile({
+  Widget _buildSensorTile({
     required IconData icon,
     required String title,
     required String value,
     required String description,
+    required SensorStatus status,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 30),
-          SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title,
-                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600)),
-                Text(value,
-                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600)),
-                Text(description,
-                    style: GoogleFonts.inter(fontSize: 8, fontWeight: FontWeight.w400)),
-              ],
-            ),
+    Color statusColor;
+    IconData statusIcon;
+
+    switch (status) {
+      case SensorStatus.good:
+        statusColor = Colors.green;
+        statusIcon = Icons.check_circle;
+        break;
+      case SensorStatus.warning:
+        statusColor = Colors.orange;
+        statusIcon = Icons.warning;
+        break;
+      case SensorStatus.bad:
+        statusColor = Colors.red;
+        statusIcon = Icons.cancel;
+        break;
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(8),
           ),
-          Icon(Icons.thumb_down, color: Colors.red, size: 20),
-        ],
-      ),
+          child: Icon(icon, size: 24, color: Colors.grey[600]),
+        ),
+        SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700],
+                ),
+              ),
+              Text(
+                value,
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              Text(
+                description,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+        Icon(statusIcon, color: statusColor, size: 24),
+      ],
     );
   }
 
+  Widget _buildPlantStatusSection() {
+    return Row(
+      children: [
+        Container(
+          child: SvgPicture.asset(
+            'assets/images/wheat.svg',
+            width: 40,
+            color: Colors.grey[600]),
+        ),
+        SizedBox(width: 12),
+        Expanded(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Plant Status',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
+              ),
+            ),
+          ],
+        )),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.sentiment_dissatisfied, size: 24, color: Colors.red),
+            SizedBox(width: 4),
+            Text(
+              'Bad',
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.red,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRecommendationSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.lightbulb_outline, size: 20, color: Colors.grey[600]),
+            SizedBox(width: 8),
+            Text(
+              'Diagnose & Recommendation',
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 12),
+        Text(
+          'Your plant is experiencing water stress due to low soil moisture and high ambient temperature. The soil is also slightly acidic, which may hinder nutrient absorption.',
+          style: GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: FontWeight.w400,
+            color: Colors.grey[600],
+            height: 1.4,
+          ),
+        ),
+        SizedBox(height: 12),
+        Text(
+          'Recommendation action:',
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        SizedBox(height: 8),
+        ..._buildRecommendationList(),
+      ],
+    );
+  }
+
+  List<Widget> _buildRecommendationList() {
+    final recommendations = [
+      'Irrigate the soil to increase soil moisture to at least 30%.',
+      'Consider mulching to reduce evaporation due to high temperatures.',
+      'Apply lime or soil amendment to balance the pH to neutral.',
+      'Monitor again in 6 hours.',
+    ];
+
+    return recommendations.asMap().entries.map((entry) {
+      int index = entry.key + 1;
+      String recommendation = entry.value;
+
+      return Padding(
+        padding: EdgeInsets.only(bottom: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '$index. ',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[700],
+              ),
+            ),
+            Expanded(
+              child: Text(
+                recommendation,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.grey[700],
+                  height: 1.3,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }).toList();
+  }
+
+  List<PieChartSectionData> showingSections() {
+    return List.generate(3, (i) {
+      final isTouched = i == touchedIndex;
+      final fontSize = isTouched ? 25.0 : 16.0;
+      final radius = isTouched ? 90.0 : 80.0;
+      switch (i) {
+        case 0:
+          return PieChartSectionData(
+            color: Colors.green[800]!,
+            value: 55,
+            title: '55%',
+            radius: radius,
+            titleStyle: TextStyle(
+              fontSize: fontSize,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          );
+        case 1:
+          return PieChartSectionData(
+            color: Colors.orange,
+            value: 20,
+            title: '20%',
+            radius: radius,
+            titleStyle: TextStyle(
+              fontSize: fontSize,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          );
+        case 2:
+          return PieChartSectionData(
+            color: Colors.red,
+            value: 25,
+            title: '25%',
+            radius: radius,
+            titleStyle: TextStyle(
+              fontSize: fontSize,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          );
+        default:
+          throw Error();
+      }
+    });
+  }
 
   Widget _legendItem(Color color, String label) {
     return Padding(
@@ -294,53 +572,5 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
-  }
-
-  List<PieChartSectionData> showingSections() {
-    return List.generate(3, (i) {
-      final isTouched = i == touchedIndex;
-      final fontSize = isTouched ? 25.0 : 16.0;
-      final radius = isTouched ? 90.0 : 80.0;
-      switch (i) {
-        case 0:
-          return PieChartSectionData(
-            color: Colors.green[800]!,
-            value: 60,
-            title: '60%',
-            radius: radius,
-            titleStyle: TextStyle(
-              fontSize: fontSize,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          );
-        case 1:
-          return PieChartSectionData(
-            color: Colors.green[200]!,
-            value: 30,
-            title: '30%',
-            radius: radius,
-            titleStyle: TextStyle(
-              fontSize: fontSize,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          );
-        case 2:
-          return PieChartSectionData(
-            color: Colors.red[300]!,
-            value: 10,
-            title: '10%',
-            radius: radius,
-            titleStyle: TextStyle(
-              fontSize: fontSize,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          );
-        default:
-          throw Error();
-      }
-    });
   }
 }
