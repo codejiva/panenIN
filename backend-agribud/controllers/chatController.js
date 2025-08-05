@@ -1,7 +1,8 @@
 // controllers/chatController.js
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { v4: uuidv4 } = require('uuid');
-const pool = require('../config/db'); // Menggunakan pool promise
+const pool = require('../config/db');
+const faqModel = require('../models/faqModel');
 
 // --- KONFIGURASI GEMINI ---
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -15,10 +16,7 @@ const model = genAI.getGenerativeModel({
 // --- FUNGSI HELPER ---
 const getChatHistory = async (conversationId) => {
   const [messages] = await pool.query('SELECT role, content FROM messages WHERE conversation_id = ? ORDER BY created_at ASC', [conversationId]);
-  return messages.map(msg => ({
-    role: msg.role,
-    parts: [{ text: msg.content }]
-  }));
+  return messages.map(msg => ({ role: msg.role, parts: [{ text: msg.content }] }));
 };
 
 const generateChatTitle = async (firstMessage) => {
@@ -33,104 +31,150 @@ const generateChatTitle = async (firstMessage) => {
     }
 }
 
-// --- CONTROLLER LOGIC ---
-
 /**
- * Memulai percakapan baru.
+ * FUNGSI BARU: Mencari jawaban di FAQ menggunakan AI
+ * @param {string} userQuestion Pertanyaan dari user
+ * @returns {string|null} Jawaban dari FAQ jika cocok, atau null jika tidak.
  */
-exports.startNewChat = async (req, res) => {
-  const { message, userId } = req.body;
-  if (!message || !userId) {
-    return res.status(400).json({ error: 'message and userId are required.' });
-  }
-
-  const connection = await pool.getConnection();
+const findFaqMatch = async (userQuestion) => {
   try {
-    await connection.beginTransaction();
+    const faqs = await faqModel.getAllFaqs();
+    if (faqs.length === 0) return null;
 
-    const conversationId = uuidv4();
-    const title = await generateChatTitle(message);
-    const userFile = req.file;
+    // Buat daftar pertanyaan FAQ untuk dikirim ke Gemini
+    const faqListForPrompt = faqs.map(faq => `ID: ${faq.id} - Pertanyaan: "${faq.question}"`).join('\n');
 
-    const chat = model.startChat({ history: [] });
+    const prompt = `
+      Anda adalah asisten klasifikasi. Tugas Anda adalah menentukan apakah pertanyaan pengguna memiliki maksud yang SAMA dengan salah satu pertanyaan dalam daftar FAQ berikut.
+      
+      Daftar FAQ:
+      ${faqListForPrompt}
 
-    const promptParts = [message];
-    if (userFile) {
-      promptParts.push({ inlineData: { data: userFile.buffer.toString("base64"), mimeType: userFile.mimetype } });
+      Pertanyaan Pengguna: "${userQuestion}"
+
+      Jika ada yang cocok, balas HANYA dengan ID dari FAQ yang cocok (contoh: "12"). Jika sama sekali tidak ada yang cocok, balas HANYA dengan kata "null".
+    `;
+
+    // Kita gunakan model yang lebih cepat/murah untuk klasifikasi ini
+    const classificationModel = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const result = await classificationModel.generateContent(prompt);
+    const responseText = result.response.text().trim();
+
+    if (responseText !== 'null' && !isNaN(responseText)) {
+      const matchedId = parseInt(responseText, 10);
+      const matchedFaq = faqs.find(faq => faq.id === matchedId);
+      if (matchedFaq) {
+        console.log(`INFO: FAQ Match Found! ID: ${matchedId}. Serving answer from DB.`);
+        return matchedFaq.answer; // Kembalikan jawaban dari database
+      }
     }
-
-    const result = await chat.sendMessage(promptParts);
-    const modelResponse = result.response.text();
-
-    await connection.query('INSERT INTO conversations (id, user_id, title) VALUES (?, ?, ?)', [conversationId, userId, title]);
-    await connection.query('INSERT INTO messages (conversation_id, role, content) VALUES (?, ?, ?)', [conversationId, 'user', message]);
-    await connection.query('INSERT INTO messages (conversation_id, role, content) VALUES (?, ?, ?)', [conversationId, 'model', modelResponse]);
     
-    await connection.commit();
-
-    res.status(201).json({
-      message: "New conversation started.",
-      conversationId: conversationId,
-      reply: modelResponse
-    });
-
+    return null; // Tidak ada yang cocok
   } catch (error) {
-    await connection.rollback(); // Batalkan semua query jika ada error
-    console.error('Error starting new chat:', error);
-    if (error.message && error.message.includes('429')) {
-        return res.status(429).json({ error: 'Kuota percakapan sudah habis :( Mohon tunggu sejenak dan coba lagi :D' });
-    }
-    res.status(500).json({ error: 'Failed to communicate with the AI model.' });
-  } finally {
-    connection.release(); // Selalu lepaskan koneksi
+    console.error("Error during FAQ check:", error);
+    return null; // Jika ada error, anggap saja tidak ada yang cocok dan lanjutkan ke Gemini utama
   }
 };
 
 
-/**
- * Melanjutkan percakapan yang sudah ada.
- */
-exports.continueChat = async (req, res) => {
-  const { conversationId } = req.params;
-  const { message } = req.body;
-  if (!message) {
-    return res.status(400).json({ error: 'message is required.' });
+// --- CONTROLLER LOGIC ---
+
+const handleChatLogic = async (message, userId, conversationId = null, userFile) => {
+  // LOGIKA BARU: Cek FAQ dulu
+  // Kita hanya cek FAQ jika tidak ada file yang di-upload
+  let modelResponse = null;
+  if (!userFile) {
+    modelResponse = await findFaqMatch(message);
   }
 
   const connection = await pool.getConnection();
+  await connection.beginTransaction();
+
   try {
-    await connection.beginTransaction(); // <-- PERUBAHAN: Mulai transaksi
+    let currentConversationId = conversationId;
 
-    const userFile = req.file;
-    const history = await getChatHistory(conversationId);
-    const chat = model.startChat({ history });
-
-    const promptParts = [message];
-    if (userFile) {
-      promptParts.push({ inlineData: { data: userFile.buffer.toString("base64"), mimeType: userFile.mimetype } });
+    // Jika jawaban tidak ditemukan di FAQ, panggil Gemini
+    if (!modelResponse) {
+      console.log("INFO: No FAQ match. Calling Gemini API.");
+      const history = conversationId ? await getChatHistory(conversationId) : [];
+      const chat = model.startChat({ history });
+      const promptParts = [message];
+      if (userFile) {
+        promptParts.push({ inlineData: { data: userFile.buffer.toString("base64"), mimeType: userFile.mimetype } });
+      }
+      const result = await chat.sendMessage(promptParts);
+      modelResponse = result.response.text();
     }
+
+    // Proses penyimpanan ke DB
+    if (!conversationId) { // Ini adalah chat baru
+      currentConversationId = uuidv4();
+      const title = await generateChatTitle(message);
+      await connection.query('INSERT INTO conversations (id, user_id, title) VALUES (?, ?, ?)', [currentConversationId, userId, title]);
+    }
+
+    await connection.query('INSERT INTO messages (conversation_id, role, content) VALUES (?, ?, ?)', [currentConversationId, 'user', message]);
+    await connection.query('INSERT INTO messages (conversation_id, role, content) VALUES (?, ?, ?)', [currentConversationId, 'model', modelResponse]);
     
-    const result = await chat.sendMessage(promptParts);
-    const modelResponse = result.response.text();
-
-    // Menjalankan kedua query dalam satu transaksi yang aman
-    await connection.query('INSERT INTO messages (conversation_id, role, content) VALUES (?, ?, ?)', [conversationId, 'user', message]);
-    await connection.query('INSERT INTO messages (conversation_id, role, content) VALUES (?, ?, ?)', [conversationId, 'model', modelResponse]);
-
-    await connection.commit(); // <-- PERUBAHAN: Konfirmasi transaksi
-
-    res.status(200).json({
-      reply: modelResponse
-    });
+    await connection.commit();
+    
+    return {
+        conversationId: currentConversationId,
+        reply: modelResponse
+    };
 
   } catch (error) {
-    await connection.rollback(); // <-- PERUBAHAN: Batalkan jika ada error
+    await connection.rollback();
+    throw error; // Lemparkan error untuk ditangani oleh pemanggil
+  } finally {
+    connection.release();
+  }
+};
+
+exports.startNewChat = async (req, res) => {
+  try {
+    const { message, userId } = req.body;
+    if (!message || !userId) {
+      return res.status(400).json({ error: 'message and userId are required.' });
+    }
+    const result = await handleChatLogic(message, userId, null, req.file);
+    res.status(201).json({
+      message: "New conversation started.",
+      conversationId: result.conversationId,
+      reply: result.reply
+    });
+  } catch (error) {
+    console.error('Error starting new chat:', error);
+    if (error.message && error.message.includes('429')) {
+        return res.status(429).json({ error: 'Kuota percakapan sudah habis :( Mohon tunggu sejenak dan coba lagi :D' });
+    }
+    res.status(500).json({ error: 'Failed to handle chat request.' });
+  }
+};
+
+exports.continueChat = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { message } = req.body;
+    if (!message) {
+      return res.status(400).json({ error: 'message is required.' });
+    }
+    // Untuk melanjutkan chat, kita butuh userId. Frontend harus mengirimkannya.
+    // Atau kita bisa ambil dari token JWT, tapi untuk sekarang kita minta dari body.
+    const { userId } = req.body; 
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required for context.' });
+    }
+
+    const result = await handleChatLogic(message, userId, conversationId, req.file);
+    res.status(200).json({
+      reply: result.reply
+    });
+  } catch (error) {
     console.error('Error continuing chat:', error);
     if (error.message && error.message.includes('429')) {
         return res.status(429).json({ error: 'Kuota percakapan sudah habis :( Mohon tunggu sejenak dan coba lagi :D' });
     }
-    res.status(500).json({ error: 'Failed to communicate with the AI model.' });
-  } finally {
-      connection.release(); // <-- PERUBAHAN: Selalu lepaskan koneksi
+    res.status(500).json({ error: 'Failed to handle chat request.' });
   }
 };
