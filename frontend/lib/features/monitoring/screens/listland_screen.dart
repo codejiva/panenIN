@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 class ListLandDashboard extends StatefulWidget {
-  const ListLandDashboard({Key? key}) : super(key: key);
+  const ListLandDashboard({super.key});
 
   @override
   _ListLandDashboardState createState() => _ListLandDashboardState();

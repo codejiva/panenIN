@@ -6,25 +6,17 @@ import '../../../config/constants/colors.dart';
 import '../providers/auth_provider.dart';
 
 class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({Key? key}) : super(key: key);
+  const SignUpScreen({super.key});
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  final TextEditingController _provinceSearchController = TextEditingController();
-  List<dynamic> _filteredProvinces = [];
-  bool _isDropdownOpen = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // Menggunakan WidgetsBinding untuk memastikan context sudah tersedia
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AuthProvider>().fetchProvinces();
-    });
-  }
+  final bool _privacyPolicyChecked = false;
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
 
   @override
   void dispose() {
@@ -47,14 +39,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<AuthProvider>();
-    final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
 
-    // Initialize filtered provinces when provinces are loaded
-    if (_filteredProvinces.isEmpty && provider.provinces.isNotEmpty) {
-      _filteredProvinces = provider.provinces;
-    }
-
+    final bool isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+    bool isChecked = false;
+    bool obscureText = true;
     return Scaffold(
       backgroundColor: Colors.white,
       resizeToAvoidBottomInset: true,
@@ -342,15 +330,56 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           decoration: BoxDecoration(
                             color: isSelected ? AppColors.primary.withOpacity(0.1) : null,
                           ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  province.name,
-                                  style: GoogleFonts.inter(
-                                    fontSize: 14,
-                                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                                    color: isSelected ? AppColors.primary : Colors.black87,
+
+                        ),
+                        SizedBox(height: 25),
+                        TextField(
+                          obscureText: obscureText,
+                          decoration: InputDecoration(
+                            labelText: 'Password',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            filled: true, // Jika ingin background berwarna
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                obscureText ? Icons.visibility_off : Icons.visibility,
+                                color: Colors.grey,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  obscureText = !obscureText;
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                RichText(
+                                  text: TextSpan(
+                                    text: 'i have read the ',
+                                    style: GoogleFonts.inter(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: Colors.black54
+                                    ),
+                                    children: [
+                                      TextSpan(
+                                        text: 'Privace Policy', // Diubah dari SIGN UP karena lebih sesuai dengan konteksnya
+                                        style: GoogleFonts.inter(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),

@@ -8,11 +8,11 @@ class SharedAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Color cornerColor;
 
   const SharedAppBar({
-    Key? key,
+    super.key,
     this.onNotificationPressed,
     this.onProfilePressed,
     this.cornerColor = Colors.white,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

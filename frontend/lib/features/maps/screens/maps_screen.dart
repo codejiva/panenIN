@@ -5,7 +5,7 @@ import 'package:PanenIn/features/maps/providers/village_model.dart';
 import 'package:PanenIn/features/maps/providers/api_service.dart';
 
 class MapScreen extends StatefulWidget {
-  const MapScreen({Key? key}) : super(key: key);
+  const MapScreen({super.key});
 
   @override
   _MapScreenState createState() => _MapScreenState();
@@ -66,7 +66,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _zoomToPolygon(List<List<LatLng>> polygons) {
-    if (polygons.isEmpty || mapController == null) return;
+    if (polygons.isEmpty) return;
     final bounds = _boundsFromLatLngList(polygons.expand((p) => p).toList());
     mapController.animateCamera(CameraUpdate.newLatLngBounds(bounds, 50));
   }

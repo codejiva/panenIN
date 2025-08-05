@@ -11,12 +11,12 @@ class ForumPostCard extends StatelessWidget {
   final int commentCount;
 
   const ForumPostCard({
-    Key? key,
+    super.key,
     required this.question,
     required this.author,
     required this.expertName,
     this.commentCount = 0,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

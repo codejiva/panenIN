@@ -9,7 +9,7 @@ void main() {
 }
 
 class Agribuddy extends StatelessWidget {
-  const Agribuddy({Key? key}) : super(key: key);
+  const Agribuddy({super.key});
 
   @override
   Widget build(BuildContext context) {

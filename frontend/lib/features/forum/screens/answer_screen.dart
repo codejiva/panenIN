@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AnswerScreen extends StatefulWidget {
-  const AnswerScreen({Key? key}) : super(key: key);
+  const AnswerScreen({super.key});
 
   @override
   State<AnswerScreen> createState() => _AnswerScreen();
@@ -28,7 +28,7 @@ class _AnswerScreen extends State<AnswerScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
+                    SizedBox(
                       width: 40,
                       height: 40,
                       child:ElevatedButton(

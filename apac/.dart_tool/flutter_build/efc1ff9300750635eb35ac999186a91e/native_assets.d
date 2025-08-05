@@ -1,0 +1,1 @@
+ D:\\coding\\projects\\agribuddyapp\\apac\\.dart_tool\\flutter_build\\efc1ff9300750635eb35ac999186a91e\\native_assets.yaml: 

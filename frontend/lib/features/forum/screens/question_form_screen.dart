@@ -9,7 +9,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 
 class QuestionFormScreen extends StatefulWidget {
-  const QuestionFormScreen({Key? key}) : super(key: key);
+  const QuestionFormScreen({super.key});
 
   @override
   State<QuestionFormScreen> createState() => _QuestionFormScreen();
@@ -54,7 +54,7 @@ class _QuestionFormScreen extends State<QuestionFormScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
+                    SizedBox(
                         width: 40,
                         height: 40,
                         child: ElevatedButton(

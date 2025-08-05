@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 
 
 class WelcomeChatScreen extends StatefulWidget {
-  const WelcomeChatScreen({Key? key}) : super(key: key);
+  const WelcomeChatScreen({super.key});
 
   @override
   _WelcomeChatScreenState createState() => _WelcomeChatScreenState();
