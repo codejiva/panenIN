@@ -1,4 +1,6 @@
 import 'package:PanenIn/shared/widgets/appbar.dart';
+import 'package:PanenIn/features/home/services/google_maps_service.dart';
+import 'package:PanenIn/config/constants/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -22,6 +24,36 @@ class _HomeScreenState extends State<HomeScreen> {
   // Koordinat default untuk peta (misalnya: Jakarta)
   final LatLng _center = const LatLng(-6.2088, 106.8456);
   int touchedIndex = -1;
+  bool _isMapLoading = true;
+  String? _mapError;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeGoogleMaps();
+  }
+
+  Future<void> _initializeGoogleMaps() async {
+    try {
+      // Initialize Google Maps service
+      await GoogleMapsService.initialize();
+
+      // Validate API key
+      if (!GoogleMapsService.isValidApiKey(AppConstants.googleMapsApiKey)) {
+        throw Exception('Invalid Google Maps API key format');
+      }
+
+      setState(() {
+        _isMapLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isMapLoading = false;
+        _mapError = e.toString();
+      });
+      print('Error initializing Google Maps: $e');
+    }
+  }
 
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
@@ -67,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   decoration: BoxDecoration(
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.2),
+                        color: Colors.grey,
                         blurRadius: 8,
                         offset: Offset(0, 4),
                       ),
@@ -198,34 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       fontSize: 14
                   )
               ),
-              Container(
-                height: 200, // Tinggi peta
-                width: double.infinity, // Lebar penuh
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.green.shade300),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: GoogleMap(
-                    onMapCreated: _onMapCreated,
-                    initialCameraPosition: CameraPosition(
-                      target: _center,
-                      zoom: 14.0,
-                    ),
-                    markers: {
-                      Marker(
-                        markerId: MarkerId('farm_location'),
-                        position: _center,
-                        infoWindow: InfoWindow(
-                          title: 'Your Farm',
-                          snippet: 'Smart Farming Location',
-                        ),
-                      ),
-                    },
-                  ),
-                ),
-              ),
+              _buildMapSection(),
               SizedBox(height: 30),
               Text(
                   'Plant Health',
@@ -296,6 +301,117 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         )
+    );
+  }
+
+  Widget _buildMapSection() {
+    return Container(
+      height: 200, // Tinggi peta
+      width: double.infinity, // Lebar penuh
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green.shade300),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: _buildMapContent(),
+      ),
+    );
+  }
+
+  Widget _buildMapContent() {
+    if (_isMapLoading) {
+      return Container(
+        color: Colors.grey[200],
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: Colors.green),
+              SizedBox(height: 16),
+              Text(
+                'Loading Map...',
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_mapError != null) {
+      return Container(
+        color: Colors.red[50],
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, color: Colors.red, size: 48),
+              SizedBox(height: 16),
+              Text(
+                'Map Error',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
+              SizedBox(height: 8),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  'Failed to load Google Maps. Please check your API key configuration.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: Colors.red[700],
+                  ),
+                ),
+              ),
+              SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _isMapLoading = true;
+                    _mapError = null;
+                  });
+                  _initializeGoogleMaps();
+                },
+                child: Text('Retry'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return GoogleMap(
+      onMapCreated: (controller) {
+        _onMapCreated(controller);
+        mapController = controller;
+        print('Google Maps loaded successfully with API key from constants');
+      },
+      initialCameraPosition: CameraPosition(
+        target: _center,
+        zoom: AppConstants.defaultMapZoom,
+      ),
+      markers: {
+        Marker(
+          markerId: MarkerId('farm_location'),
+          position: _center,
+          infoWindow: InfoWindow(
+            title: 'Your Farm',
+            snippet: 'Smart Farming Location',
+          ),
+        ),
+      },
     );
   }
 
@@ -377,9 +493,9 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         Container(
           child: SvgPicture.asset(
-            'assets/images/wheat.svg',
-            width: 40,
-            color: Colors.grey[600]),
+              'assets/images/wheat.svg',
+              width: 40,
+              color: Colors.grey[600]),
         ),
         SizedBox(width: 12),
         Expanded(child: Column(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/province_model.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -10,25 +11,176 @@ class AuthProvider extends ChangeNotifier {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
+  // Login controllers
+  final TextEditingController loginEmailController = TextEditingController();
+  final TextEditingController loginPasswordController = TextEditingController();
+
   // State variables
   bool _obscureText = true;
+  bool _obscureLoginText = true;
   bool _privacyPolicyChecked = false;
   bool _isLoading = false;
   bool _isLoadingProvinces = false;
+  bool _isLoginLoading = false;
+  bool _isAuthenticating = false; // untuk auto login check
   String? _selectedProvince;
   List<Province> _provinces = [];
 
+  // Auth state
+  bool _isLoggedIn = false;
+  String? _token;
+  Map<String, dynamic>? _userData;
+
+  // Constants for SharedPreferences keys
+  static const String _tokenKey = 'auth_token';
+  static const String _userDataKey = 'user_data';
+  static const String _isLoggedInKey = 'is_logged_in';
+
   // Getters
   bool get obscureText => _obscureText;
+  bool get obscureLoginText => _obscureLoginText;
   bool get privacyPolicyChecked => _privacyPolicyChecked;
   bool get isLoading => _isLoading;
   bool get isLoadingProvinces => _isLoadingProvinces;
+  bool get isLoginLoading => _isLoginLoading;
+  bool get isAuthenticating => _isAuthenticating;
+  bool get isLoggedIn => _isLoggedIn;
   String? get selectedProvince => _selectedProvince;
+  String? get token => _token;
+  Map<String, dynamic>? get userData => _userData;
   List<Province> get provinces => _provinces;
+
+  // Initialize - check if user already logged in
+  Future<void> initializeAuth() async {
+    _isAuthenticating = true;
+    notifyListeners();
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      _isLoggedIn = prefs.getBool(_isLoggedInKey) ?? false;
+      _token = prefs.getString(_tokenKey);
+
+      final userDataString = prefs.getString(_userDataKey);
+      if (userDataString != null) {
+        _userData = json.decode(userDataString);
+      }
+
+      // Jika ada token, verifikasi apakah masih valid
+      if (_token != null && _isLoggedIn) {
+        await _verifyToken();
+      }
+    } catch (e) {
+      print('Error initializing auth: $e');
+      await _clearAuthData();
+    } finally {
+      _isAuthenticating = false;
+      notifyListeners();
+    }
+  }
+
+  // Verify if stored token is still valid
+  Future<void> _verifyToken() async {
+    if (_token == null) return;
+
+    try {
+      final response = await http.get(
+        Uri.parse('https://panen-in-teal.vercel.app/api/auth/verify'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_token',
+        },
+      );
+
+      if (response.statusCode != 200) {
+        // Token tidak valid, clear auth data
+        await _clearAuthData();
+      }
+    } catch (e) {
+      print('Error verifying token: $e');
+      await _clearAuthData();
+    }
+  }
+
+  // Save auth data to SharedPreferences
+  Future<void> _saveAuthData(Map<String, dynamic> responseData) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Ambil token dari response (sesuaikan dengan struktur API Anda)
+      _token = responseData['token'] ?? responseData['access_token'];
+      _userData = responseData['user'] ?? responseData['data'];
+      _isLoggedIn = true;
+
+      // Simpan ke SharedPreferences
+      await prefs.setString(_tokenKey, _token ?? '');
+      await prefs.setString(_userDataKey, json.encode(_userData));
+      await prefs.setBool(_isLoggedInKey, true);
+
+      notifyListeners();
+    } catch (e) {
+      print('Error saving auth data: $e');
+    }
+  }
+
+  // Clear auth data from SharedPreferences
+  Future<void> _clearAuthData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      await prefs.remove(_tokenKey);
+      await prefs.remove(_userDataKey);
+      await prefs.remove(_isLoggedInKey);
+
+      _token = null;
+      _userData = null;
+      _isLoggedIn = false;
+
+      notifyListeners();
+    } catch (e) {
+      print('Error clearing auth data: $e');
+    }
+  }
+
+  // Logout method
+  Future<void> logout(BuildContext context) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      // Optional: Call logout API endpoint
+      if (_token != null) {
+        await http.post(
+          Uri.parse('https://panen-in-teal.vercel.app/api/auth/logout'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $_token',
+          },
+        );
+      }
+    } catch (e) {
+      print('Error calling logout API: $e');
+    } finally {
+      // Clear local auth data
+      await _clearAuthData();
+      _clearLoginForm();
+
+      _isLoading = false;
+      notifyListeners();
+
+      // Navigate to login page
+      context.goNamed('login');
+    }
+  }
 
   // Setters
   void togglePasswordVisibility() {
     _obscureText = !_obscureText;
+    notifyListeners();
+  }
+
+  void toggleLoginPasswordVisibility() {
+    _obscureLoginText = !_obscureLoginText;
     notifyListeners();
   }
 
@@ -40,6 +192,70 @@ class AuthProvider extends ChangeNotifier {
   void setSelectedProvince(String? value) {
     _selectedProvince = value;
     notifyListeners();
+  }
+
+  // Method untuk login dengan email atau username
+  Future<void> signIn(BuildContext context) async {
+    // Validasi input login
+    if (!_validateLoginInput(context)) return;
+
+    _isLoginLoading = true;
+    notifyListeners();
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://panen-in-teal.vercel.app/api/auth/login'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'identifier': loginEmailController.text.trim(),
+          'password': loginPasswordController.text.trim(),
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+
+        // Simpan token dan data user
+        await _saveAuthData(responseData);
+
+        _showSuccessDialog(context, 'Login berhasil!', isLogin: true);
+      } else {
+        // Login gagal
+        final responseData = json.decode(response.body);
+        String errorMessage = 'Login gagal';
+
+        if (responseData['message'] != null) {
+          errorMessage = responseData['message'];
+        } else if (responseData['error'] != null) {
+          errorMessage = responseData['error'];
+        }
+
+        _showErrorDialog(context, errorMessage);
+      }
+    } catch (e) {
+      _showErrorDialog(context, 'Terjadi kesalahan jaringan. Silakan coba lagi.');
+      print('Login error: $e');
+    } finally {
+      _isLoginLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Validasi input login
+  bool _validateLoginInput(BuildContext context) {
+    if (loginEmailController.text.trim().isEmpty) {
+      _showErrorDialog(context, 'Email atau username tidak boleh kosong');
+      return false;
+    }
+
+    if (loginPasswordController.text.trim().isEmpty) {
+      _showErrorDialog(context, 'Password tidak boleh kosong');
+      return false;
+    }
+
+    return true;
   }
 
   // Method untuk fetch provinsi dari API Indonesia
@@ -168,7 +384,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Validasi input
+  // Validasi input signup
   bool _validateInput(BuildContext context) {
     if (nameController.text.trim().isEmpty) {
       _showErrorDialog(context, 'Nama tidak boleh kosong');
@@ -233,7 +449,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // Show success dialog
-  void _showSuccessDialog(BuildContext context, String message) {
+  void _showSuccessDialog(BuildContext context, String message, {bool isLogin = false}) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -244,10 +460,17 @@ class AuthProvider extends ChangeNotifier {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                // Clear form
-                _clearForm();
-                // Navigate to login page
-                context.pushNamed('login');
+                if (isLogin) {
+                  // Clear login form
+                  _clearLoginForm();
+                  // Navigate to dashboard
+                  context.goNamed('home');
+                } else {
+                  // Clear signup form
+                  _clearForm();
+                  // Navigate to login page
+                  context.pushNamed('login');
+                }
               },
               child: const Text('OK'),
             ),
@@ -257,7 +480,7 @@ class AuthProvider extends ChangeNotifier {
     );
   }
 
-  // Clear form
+  // Clear signup form
   void _clearForm() {
     nameController.clear();
     emailController.clear();
@@ -268,11 +491,21 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Clear login form
+  void _clearLoginForm() {
+    loginEmailController.clear();
+    loginPasswordController.clear();
+    _obscureLoginText = true;
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     nameController.dispose();
     emailController.dispose();
     passwordController.dispose();
+    loginEmailController.dispose();
+    loginPasswordController.dispose();
     super.dispose();
   }
 }

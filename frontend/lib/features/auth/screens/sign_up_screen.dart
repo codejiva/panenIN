@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../config/constants/colors.dart';
@@ -113,7 +114,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             child: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.black54, size: 20),
               padding: EdgeInsets.zero,
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => context.go('/'),
             ),
           ),
         ),
