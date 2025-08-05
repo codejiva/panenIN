@@ -1,17 +1,23 @@
-// controllers/authController.js
 const userModel = require('../models/userModel');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const provinces = require('../utils/provinces');
 
 /**
- * Registrasi pengguna baru dengan pemilihan peran.
+ * Registrasi pengguna baru (Tidak ada perubahan di sini).
  */
 exports.register = async (req, res) => {
-  // Ambil 'role' dari body. Jika tidak ada, default ke 'farmer'.
   const { username, email, password, region, role = 'farmer' } = req.body;
 
-  if (!username || !email || !password) {
-    return res.status(400).json({ message: 'Username, email, and password are required.' });
+  if (!username || !email || !password || !region) {
+    return res.status(400).json({ message: 'Username, email, password, and region are required.' });
+  }
+
+  if (!provinces.includes(region)) {
+    return res.status(400).json({ 
+      message: `Invalid region. '${region}' is not a valid province.`,
+      validProvinces: provinces 
+    });
   }
 
   try {
@@ -22,16 +28,11 @@ exports.register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    // ---- PERUBAHAN DI SINI ----
-    // Tentukan role_id berdasarkan input string 'role'.
-    // Berdasarkan SQL kita, 1 = farmer, 2 = advisor.
-    let roleId = 1; // Default ke farmer
+    let roleId = 1;
     if (role.toLowerCase() === 'advisor') {
         roleId = 2;
     }
-    // -------------------------
 
-    // Kirim roleId ke fungsi createUser di model
     await userModel.createUser(username, email, hashedPassword, region, roleId);
 
     res.status(201).json({ message: 'User registered successfully' });
@@ -44,17 +45,20 @@ exports.register = async (req, res) => {
 
 
 /**
- * Login pengguna dan berikan JWT (Tidak ada perubahan di sini).
+ * Login pengguna menggunakan username ATAU email.
  */
 exports.login = async (req, res) => {
-  const { username, password } = req.body;
+  // --- PERUBAHAN DI SINI ---
+  // Frontend akan mengirim 'identifier' yang bisa berisi username atau email.
+  const { identifier, password } = req.body;
 
-  if (!username || !password) {
-    return res.status(400).json({ message: 'Username and password are required.' });
+  if (!identifier || !password) {
+    return res.status(400).json({ message: 'Identifier and password are required.' });
   }
 
   try {
-    const user = await userModel.findUserByUsername(username);
+    // Panggil fungsi model yang baru
+    const user = await userModel.findUserByLoginIdentifier(identifier);
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -66,7 +70,7 @@ exports.login = async (req, res) => {
 
     const payload = {
       userId: user.id,
-      username: user.username,
+      username: user.username, // Selalu kembalikan username untuk konsistensi
       role: user.role_name
     };
 
