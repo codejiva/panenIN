@@ -1,7 +1,7 @@
 // controllers/chatController.js
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { v4: uuidv4 } = require('uuid');
-const db = require('../config/db'); // Menggunakan pool promise
+const pool = require('../config/db'); // Menggunakan pool promise
 
 // --- KONFIGURASI GEMINI ---
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -14,7 +14,7 @@ const model = genAI.getGenerativeModel({
 
 // --- FUNGSI HELPER ---
 const getChatHistory = async (conversationId) => {
-  const [messages] = await db.query('SELECT role, content FROM messages WHERE conversation_id = ? ORDER BY created_at ASC', [conversationId]);
+  const [messages] = await pool.query('SELECT role, content FROM messages WHERE conversation_id = ? ORDER BY created_at ASC', [conversationId]);
   return messages.map(msg => ({
     role: msg.role,
     parts: [{ text: msg.content }]
@@ -39,43 +39,34 @@ const generateChatTitle = async (firstMessage) => {
  * Memulai percakapan baru.
  */
 exports.startNewChat = async (req, res) => {
+  const { message, userId } = req.body;
+  if (!message || !userId) {
+    return res.status(400).json({ error: 'message and userId are required.' });
+  }
+
+  const connection = await pool.getConnection();
   try {
-    const { message, userId } = req.body;
-    if (!message || !userId) {
-      return res.status(400).json({ error: 'message and userId are required.' });
-    }
+    await connection.beginTransaction();
 
     const conversationId = uuidv4();
     const title = await generateChatTitle(message);
     const userFile = req.file;
 
-    // Memulai sesi chat di Gemini (tanpa history)
     const chat = model.startChat({ history: [] });
 
-    // Membuat prompt, bisa berisi teks dan file
     const promptParts = [message];
     if (userFile) {
       promptParts.push({ inlineData: { data: userFile.buffer.toString("base64"), mimeType: userFile.mimetype } });
     }
 
-    // Mengirim pesan pertama ke Gemini
     const result = await chat.sendMessage(promptParts);
     const modelResponse = result.response.text();
 
-    // Simpan semua ke database dalam satu transaksi
-    const connection = await db.getConnection();
-    await connection.beginTransaction();
-    try {
-        await connection.query('INSERT INTO conversations (id, user_id, title) VALUES (?, ?, ?)', [conversationId, userId, title]);
-        await connection.query('INSERT INTO messages (conversation_id, role, content) VALUES (?, ?, ?)', [conversationId, 'user', message]);
-        await connection.query('INSERT INTO messages (conversation_id, role, content) VALUES (?, ?, ?)', [conversationId, 'model', modelResponse]);
-        await connection.commit();
-    } catch(dbError) {
-        await connection.rollback();
-        throw dbError; // Lemparkan error untuk ditangkap oleh catch utama
-    } finally {
-        connection.release();
-    }
+    await connection.query('INSERT INTO conversations (id, user_id, title) VALUES (?, ?, ?)', [conversationId, userId, title]);
+    await connection.query('INSERT INTO messages (conversation_id, role, content) VALUES (?, ?, ?)', [conversationId, 'user', message]);
+    await connection.query('INSERT INTO messages (conversation_id, role, content) VALUES (?, ?, ?)', [conversationId, 'model', modelResponse]);
+    
+    await connection.commit();
 
     res.status(201).json({
       message: "New conversation started.",
@@ -84,11 +75,14 @@ exports.startNewChat = async (req, res) => {
     });
 
   } catch (error) {
+    await connection.rollback(); // Batalkan semua query jika ada error
     console.error('Error starting new chat:', error);
     if (error.message && error.message.includes('429')) {
         return res.status(429).json({ error: 'Kuota percakapan sudah habis :( Mohon tunggu sejenak dan coba lagi :D' });
     }
     res.status(500).json({ error: 'Failed to communicate with the AI model.' });
+  } finally {
+    connection.release(); // Selalu lepaskan koneksi
   }
 };
 
@@ -97,44 +91,46 @@ exports.startNewChat = async (req, res) => {
  * Melanjutkan percakapan yang sudah ada.
  */
 exports.continueChat = async (req, res) => {
-    try {
-        const { conversationId } = req.params;
-        const { message } = req.body;
-        if (!message) {
-            return res.status(400).json({ error: 'message is required.' });
-        }
+  const { conversationId } = req.params;
+  const { message } = req.body;
+  if (!message) {
+    return res.status(400).json({ error: 'message is required.' });
+  }
 
-        const userFile = req.file;
-        const history = await getChatHistory(conversationId);
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction(); // <-- PERUBAHAN: Mulai transaksi
 
-        // Memulai sesi chat dengan history yang sudah ada
-        const chat = model.startChat({ history });
+    const userFile = req.file;
+    const history = await getChatHistory(conversationId);
+    const chat = model.startChat({ history });
 
-        // Membuat prompt, bisa berisi teks dan file
-        const promptParts = [message];
-        if (userFile) {
-            promptParts.push({ inlineData: { data: userFile.buffer.toString("base64"), mimeType: userFile.mimetype } });
-        }
-        
-        // Mengirim pesan lanjutan ke Gemini
-        const result = await chat.sendMessage(promptParts);
-        const modelResponse = result.response.text();
-
-        // Simpan pesan user dan balasan model ke database
-        await db.query('INSERT INTO messages (conversation_id, role, content) VALUES (?, ?, ?), (?, ?, ?)', [
-            conversationId, 'user', message,
-            conversationId, 'model', modelResponse
-        ]);
-
-        res.status(200).json({
-            reply: modelResponse
-        });
-
-    } catch (error) {
-        console.error('Error continuing chat:', error);
-        if (error.message && error.message.includes('429')) {
-            return res.status(429).json({ error: 'Kuota percakapan sudah habis :( Mohon tunggu sejenak dan coba lagi :D' });
-        }
-        res.status(500).json({ error: 'Failed to communicate with the AI model.' });
+    const promptParts = [message];
+    if (userFile) {
+      promptParts.push({ inlineData: { data: userFile.buffer.toString("base64"), mimeType: userFile.mimetype } });
     }
+    
+    const result = await chat.sendMessage(promptParts);
+    const modelResponse = result.response.text();
+
+    // Menjalankan kedua query dalam satu transaksi yang aman
+    await connection.query('INSERT INTO messages (conversation_id, role, content) VALUES (?, ?, ?)', [conversationId, 'user', message]);
+    await connection.query('INSERT INTO messages (conversation_id, role, content) VALUES (?, ?, ?)', [conversationId, 'model', modelResponse]);
+
+    await connection.commit(); // <-- PERUBAHAN: Konfirmasi transaksi
+
+    res.status(200).json({
+      reply: modelResponse
+    });
+
+  } catch (error) {
+    await connection.rollback(); // <-- PERUBAHAN: Batalkan jika ada error
+    console.error('Error continuing chat:', error);
+    if (error.message && error.message.includes('429')) {
+        return res.status(429).json({ error: 'Kuota percakapan sudah habis :( Mohon tunggu sejenak dan coba lagi :D' });
+    }
+    res.status(500).json({ error: 'Failed to communicate with the AI model.' });
+  } finally {
+      connection.release(); // <-- PERUBAHAN: Selalu lepaskan koneksi
+  }
 };
