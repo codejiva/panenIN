@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'config/routes/app_router.dart';
 import 'config/themes/AppTheme.dart';
-import 'package:go_router/go_router.dart';
 
 void main() {
   runApp(const Agribuddy());

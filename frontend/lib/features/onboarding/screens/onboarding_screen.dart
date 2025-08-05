@@ -68,14 +68,16 @@ class OnboardingScreen extends StatelessWidget {
                             color: Colors.black,
                             fontWeight: FontWeight.w300
                         )),
-                    SizedBox(width: 10,),
-                    Text(
-                        'LOG IN',
-                        style: GoogleFonts.inter(
-                            fontSize: 14,
-                            color: Color(0xFF307D32),
-                            fontWeight: FontWeight.w300
-                        )),
+                    TextButton(
+                      onPressed: () => context.goNamed('login'),
+                      child: Text(
+                          'LOG IN',
+                          style: GoogleFonts.inter(
+                              fontSize: 14,
+                              color: Color(0xFF307D32),
+                              fontWeight: FontWeight.w300
+                          )),
+                    ),
                   ],
                 )
               ],

@@ -8,11 +8,13 @@ import 'package:PanenIn/features/monitoring/screens/landdetail_screen.dart';
 import 'package:PanenIn/features/monitoring/screens/listland_screen.dart' hide FieldStatus, FieldData;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../features/auth/screens/sign_in_screen.dart';
 import '../../features/auth/screens/sign_up_screen.dart';
 import '../../features/onboarding/screens/onboarding_screen.dart';
 import '../../features/home/screens/home_screen.dart';
 import '../../shared/widgets/buttom_navbar.dart';
+import 'package:PanenIn/features/auth/providers/auth_provider.dart';
 
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -37,7 +39,12 @@ class AppRouter {
       GoRoute(
         path: '/signup',
         name: 'signup',
-        builder: (context, state) => const SignUpScreen(),
+        builder: (context, state) {
+          return ChangeNotifierProvider(
+            create: (_) => AuthProvider(),
+            child: const SignUpScreen(),
+          );
+        },
       ),
       GoRoute(
         path: '/chatroom',
