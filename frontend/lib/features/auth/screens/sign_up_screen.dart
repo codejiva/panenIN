@@ -13,10 +13,23 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  final bool _privacyPolicyChecked = false;
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _provinceSearchController = TextEditingController();
+  List<dynamic> _filteredProvinces = [];
+  bool _isDropdownOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Fetch provinces when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      authProvider.fetchProvinces().then((_) {
+        setState(() {
+          _filteredProvinces = authProvider.provinces;
+        });
+      });
+    });
+  }
 
   @override
   void dispose() {
@@ -39,36 +52,37 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
-
-    final bool isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
-    bool isChecked = false;
-    bool obscureText = true;
     return Scaffold(
       backgroundColor: Colors.white,
       resizeToAvoidBottomInset: true,
-      body: Column(
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
-                  _buildGoogleButton(),
-                  const SizedBox(height: 30),
-                  Text(
-                    'OR SIGN UP WITH EMAIL',
-                    style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold),
+      body: Consumer<AuthProvider>(
+        builder: (context, provider, child) {
+          return Column(
+            children: [
+              _buildHeader(context),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 20),
+                      _buildGoogleButton(provider),
+                      const SizedBox(height: 30),
+                      Text(
+                        'OR SIGN UP WITH EMAIL',
+                        style: GoogleFonts.inter(
+                            fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 30),
+                      _buildForm(provider),
+                      const SizedBox(height: 40),
+                    ],
                   ),
-                  const SizedBox(height: 30),
-                  _buildForm(provider),
-                  const SizedBox(height: 40), // Extra padding at bottom
-                ],
+                ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -80,7 +94,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         Image.asset('assets/images/headerauth.png', fit: BoxFit.contain),
         Text(
           'Welcome AgriHero!',
-          style: GoogleFonts.montserrat(fontSize: 28, fontWeight: FontWeight.bold),
+          style: GoogleFonts.montserrat(
+              fontSize: 28, fontWeight: FontWeight.bold),
         ),
         Positioned(
           top: 50,
@@ -110,9 +125,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  Widget _buildGoogleButton() {
+  Widget _buildGoogleButton(AuthProvider provider) {
     return ElevatedButton(
-      onPressed: () {
+      onPressed: provider.isLoading
+          ? null
+          : () {
         // TODO: Implement Google Sign Up
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -132,10 +149,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
       ),
       child: Row(
         children: [
-          Image.asset('assets/images/googlelogo.png',
-              width: 24,
-              height: 24,
-              fit: BoxFit.contain
+          Image.asset(
+            'assets/images/googlelogo.png',
+            width: 24,
+            height: 24,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return const Icon(Icons.g_mobiledata, size: 24);
+            },
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -160,7 +181,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         // Name Field
         TextField(
           controller: provider.nameController,
-          decoration: _inputDecoration('Nama'),
+          enabled: !provider.isLoading,
+          decoration: _inputDecoration('Full Name'),
           textInputAction: TextInputAction.next,
         ),
         const SizedBox(height: 25),
@@ -168,6 +190,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         // Email Field
         TextField(
           controller: provider.emailController,
+          enabled: !provider.isLoading,
           keyboardType: TextInputType.emailAddress,
           decoration: _inputDecoration('Email'),
           textInputAction: TextInputAction.next,
@@ -177,6 +200,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         // Password Field
         TextField(
           controller: provider.passwordController,
+          enabled: !provider.isLoading,
           obscureText: provider.obscureText,
           decoration: _inputDecoration('Password').copyWith(
             suffixIcon: IconButton(
@@ -184,23 +208,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 provider.obscureText ? Icons.visibility_off : Icons.visibility,
                 color: Colors.grey,
               ),
-              onPressed: provider.togglePasswordVisibility,
+              onPressed:
+              provider.isLoading ? null : provider.togglePasswordVisibility,
             ),
           ),
-          textInputAction: TextInputAction.done,
+          textInputAction: TextInputAction.next,
         ),
         const SizedBox(height: 25),
 
-        // Province Searchable Dropdown
+        // Province Dropdown
         _buildSearchableProvinceDropdown(provider),
-        const SizedBox(height: 10),
+        const SizedBox(height: 20),
 
         // Privacy Policy Checkbox
         _buildPrivacyPolicyRow(provider),
-        const SizedBox(height: 20),
+        const SizedBox(height: 30),
 
         // Sign Up Button
         _buildSignUpButton(provider),
+
+        const SizedBox(height: 20),
+
+        // Login Link
+        _buildLoginLink(),
       ],
     );
   }
@@ -210,7 +240,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         GestureDetector(
-          onTap: provider.isLoadingProvinces ? null : () {
+          onTap: provider.isLoadingProvinces || provider.isLoading
+              ? null
+              : () {
             setState(() {
               _isDropdownOpen = !_isDropdownOpen;
             });
@@ -231,7 +263,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    provider.selectedProvince ?? 'Pilih Provinsi',
+                    provider.selectedProvince ?? 'Select Province',
                     style: GoogleFonts.inter(
                       color: provider.selectedProvince != null
                           ? Colors.black87
@@ -248,7 +280,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   )
                 else
                   Icon(
-                    _isDropdownOpen ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                    _isDropdownOpen
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
                     color: Colors.grey[600],
                   ),
               ],
@@ -280,7 +314,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   child: TextField(
                     controller: _provinceSearchController,
                     decoration: InputDecoration(
-                      hintText: 'Cari provinsi...',
+                      hintText: 'Search province...',
                       hintStyle: GoogleFonts.inter(
                         fontSize: 14,
                         color: Colors.grey[500],
@@ -311,7 +345,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     itemCount: _filteredProvinces.length,
                     itemBuilder: (context, index) {
                       final province = _filteredProvinces[index];
-                      final isSelected = provider.selectedProvince == province.name;
+                      final isSelected =
+                          provider.selectedProvince == province.name;
 
                       return InkWell(
                         onTap: () {
@@ -328,58 +363,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             vertical: 12,
                           ),
                           decoration: BoxDecoration(
-                            color: isSelected ? AppColors.primary.withOpacity(0.1) : null,
+                            color: isSelected
+                                ? AppColors.primary.withOpacity(0.1)
+                                : null,
                           ),
-
-                        ),
-                        SizedBox(height: 25),
-                        TextField(
-                          obscureText: obscureText,
-                          decoration: InputDecoration(
-                            labelText: 'Password',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                            filled: true, // Jika ingin background berwarna
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                obscureText ? Icons.visibility_off : Icons.visibility,
-                                color: Colors.grey,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  obscureText = !obscureText;
-                                });
-                              },
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                RichText(
-                                  text: TextSpan(
-                                    text: 'i have read the ',
-                                    style: GoogleFonts.inter(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                      color: Colors.black54
-                                    ),
-                                    children: [
-                                      TextSpan(
-                                        text: 'Privace Policy', // Diubah dari SIGN UP karena lebih sesuai dengan konteksnya
-                                        style: GoogleFonts.inter(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                          color: AppColors.primary,
-                                        ),
-                                      ),
-                                    ],
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  province.name,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    color: isSelected
+                                        ? AppColors.primary
+                                        : Colors.black87,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
                                   ),
                                 ),
                               ),
@@ -402,7 +402,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: Text(
-                      'Provinsi tidak ditemukan',
+                      'Province not found',
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         color: Colors.grey[500],
@@ -422,14 +422,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
       children: [
         Checkbox(
           value: provider.privacyPolicyChecked,
-          onChanged: provider.setPrivacyPolicyChecked,
+          onChanged: provider.isLoading ? null : provider.setPrivacyPolicyChecked,
+          activeColor: AppColors.primary,
           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           visualDensity: VisualDensity.compact,
         ),
         const SizedBox(width: 8),
         Expanded(
           child: GestureDetector(
-            onTap: () => provider.setPrivacyPolicyChecked(!provider.privacyPolicyChecked),
+            onTap: provider.isLoading
+                ? null
+                : () {
+              provider.setPrivacyPolicyChecked(
+                  !provider.privacyPolicyChecked);
+            },
             child: RichText(
               text: TextSpan(
                 text: 'I have read and agree to the ',
@@ -489,6 +495,33 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildLoginLink() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          "ALREADY HAVE AN ACCOUNT? ",
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Colors.black54,
+          ),
+        ),
+        GestureDetector(
+          onTap: () => context.goNamed('login'),
+          child: Text(
+            'SIGN IN',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

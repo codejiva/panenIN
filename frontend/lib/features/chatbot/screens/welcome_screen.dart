@@ -243,7 +243,7 @@ class _WelcomeChatScreenState extends State<WelcomeChatScreen> {
     // Implementasi untuk memulai chat baru
     print('Starting new chat...');
     // Navigator.push atau logic lainnya
-    context.go('/chatroom');
+    context.goNamed('chatroom');
   }
 }
 

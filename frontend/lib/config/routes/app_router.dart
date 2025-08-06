@@ -1,4 +1,5 @@
 // frontend/lib/config/routes/app_router.dart
+import 'package:PanenIn/features/auth/screens/profile_screen.dart';
 import 'package:PanenIn/features/chatbot/screens/chatroom_screen.dart';
 import 'package:PanenIn/features/chatbot/screens/welcome_screen.dart';
 import 'package:PanenIn/features/forum/screens/answer_screen.dart';
@@ -70,6 +71,12 @@ class AppRouter {
           builder: (context, state) => const SignUpScreen(),
         ),
 
+        GoRoute(
+          path: '/profile',
+          name: 'profile',
+          builder: (context, state) => const ProfileScreen(),
+        ),
+
         ShellRoute(
           navigatorKey: shellNavigatorKey,
           builder: (context, state, child) {
@@ -91,7 +98,7 @@ class AppRouter {
               ),
               routes: [
                 GoRoute(
-                  path: 'chat/:chatId',
+                  path: 'chat',
                   name: 'chatroom',
                   builder: (context, state) {
                     return const PanenAIChatScreen();
