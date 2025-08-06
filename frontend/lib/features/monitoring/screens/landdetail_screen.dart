@@ -10,12 +10,12 @@ class LandDetailScreen extends StatefulWidget {
   final FieldData? fieldData; // Optional field data from navigation
 
   const LandDetailScreen({
-    Key? key,
+    super.key,
     required this.landId,
     required this.landName,
     required this.currentStatus,
     this.fieldData,
-  }) : super(key: key);
+  });
 
   @override
   _LandDetailScreenState createState() => _LandDetailScreenState();
@@ -52,9 +52,7 @@ class _LandDetailScreenState extends State<LandDetailScreen> {
 
     try {
       // If we don't have field data, fetch it
-      if (_currentFieldData == null) {
-        _currentFieldData = await FieldHealthApiService.fetchFieldDetail(widget.landId);
-      }
+      _currentFieldData ??= await FieldHealthApiService.fetchFieldDetail(widget.landId);
 
       _updateIndicators();
     } catch (e) {

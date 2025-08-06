@@ -4,7 +4,7 @@ import 'package:PanenIn/features/chatbot/providers/AudioWaveformPainter.dart';
 import 'package:go_router/go_router.dart';
 
 class PanenAIChatScreen extends StatefulWidget {
-  const PanenAIChatScreen({Key? key}) : super(key: key);
+  const PanenAIChatScreen({super.key});
 
   @override
   _PanenAIChatScreenState createState() => _PanenAIChatScreenState();
@@ -295,7 +295,7 @@ class _PanenAIChatScreenState extends State<PanenAIChatScreen> {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Container(
+            child: SizedBox(
               height: 24,
               child: CustomPaint(
                 painter: AudioWaveformPainter(),
