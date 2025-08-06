@@ -17,9 +17,12 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  // Controller untuk Google Maps
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+  // Controller untuk Google Maps dan animasi
   GoogleMapController? mapController;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
 
   // Koordinat default untuk peta (misalnya: Jakarta)
   final LatLng _center = const LatLng(-6.2088, 106.8456);
@@ -30,19 +33,45 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Setup animations
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    ));
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutCubic,
+    ));
+
     _initializeGoogleMaps();
+    _animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   Future<void> _initializeGoogleMaps() async {
     try {
-      // Initialize Google Maps service
       await GoogleMapsService.initialize();
-
-      // Validate API key
       if (!GoogleMapsService.isValidApiKey(AppConstants.googleMapsApiKey)) {
         throw Exception('Invalid Google Maps API key format');
       }
-
       setState(() {
         _isMapLoading = false;
       });
@@ -62,273 +91,462 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: SharedAppBar(
-          onNotificationPressed: () {
-            print('Notifikasi ditekan dari HomeScreen!');
-            // Tambahkan aksi khusus untuk notifikasi di halaman ini
-          },
-          onProfilePressed: () {
-            print('Profile ditekan dari HomeScreen!');
-            // Tambahkan aksi khusus untuk profile di halaman ini
-          },
+      backgroundColor: const Color(0xFFF8FAF8),
+      appBar: SharedAppBar(
+        onNotificationPressed: () {
+          print('Notifikasi ditekan dari HomeScreen!');
+        },
+        onProfilePressed: () {
+          print('Profile ditekan dari HomeScreen!');
+        },
+      ),
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: SlideTransition(
+          position: _slideAnimation,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildWelcomeHeader(),
+                const SizedBox(height: 24),
+                // _buildQuickStatsCards(),
+                // const SizedBox(height: 24),
+                _buildMainDashboard(),
+                const SizedBox(height: 24),
+                _buildMapSection(),
+                const SizedBox(height: 24),
+                _buildPlantHealthChart(),
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
         ),
-        body:
-        SingleChildScrollView(
-          padding: EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      ),
+    );
+  }
+
+  Widget _buildWelcomeHeader() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF307D32),
+            const Color(0xFF4CAF50),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF307D32).withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Welcome Back, Farmer!',
+                  style: GoogleFonts.montserrat(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Monitor your crops with smart technology',
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w400,
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.9),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.agriculture,
+              size: 32,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget _buildQuickStatsCards() {
+  //   return Row(
+  //     children: [
+  //       Expanded(
+  //         child: _buildStatCard(
+  //           title: 'Active Sensors',
+  //           value: '12',
+  //           icon: Icons.sensors,
+  //           color: const Color(0xFF2196F3),
+  //           trend: '+2',
+  //         ),
+  //       ),
+  //       const SizedBox(width: 12),
+  //       Expanded(
+  //         child: _buildStatCard(
+  //           title: 'Plant Health',
+  //           value: '78%',
+  //           icon: Icons.local_florist,
+  //           color: const Color(0xFF4CAF50),
+  //           trend: '+5%',
+  //         ),
+  //       ),
+  //       const SizedBox(width: 12),
+  //       Expanded(
+  //         child: _buildStatCard(
+  //           title: 'Alerts',
+  //           value: '3',
+  //           icon: Icons.warning_amber,
+  //           color: const Color(0xFFFF9800),
+  //           trend: '-1',
+  //         ),
+  //       ),
+  //     ],
+  //   );
+  // }
+
+  Widget _buildStatCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+    required String trend,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              SizedBox(height: 10),
+              Icon(icon, color: color, size: 24),
               Text(
-                  'Dashboard Monitoring',
+                trend,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: trend.startsWith('+') ? Colors.green : Colors.red,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: GoogleFonts.montserrat(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          Text(
+            title,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMainDashboard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Sensor Monitoring',
                   style: GoogleFonts.montserrat(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
-                  )
-              ),
-              Text(
-                  'Start your smarter farming journey with technology!',
-                  style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w400,
-                      fontSize: 14,
-                      color: Colors.grey[600]
-                  )
-              ),
-              SizedBox(height: 5),
-              Container(
-                  decoration: BoxDecoration(
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey,
-                        blurRadius: 8,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                    borderRadius: BorderRadius.circular(16.0),
-                    color: Colors.white,
+                    color: Colors.black87,
                   ),
-                  child: Padding(
-                      padding: EdgeInsets.all(20),
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          // Check if we have enough width for row layout
-                          bool useRowLayout = constraints.maxWidth > 600;
-
-                          if (useRowLayout) {
-                            return Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Kolom kiri - Sensor Data
-                                Expanded(
-                                  flex: 2,
-                                  child: Column(
-                                    children: [
-                                      _buildSensorTile(
-                                        icon: Icons.thermostat_outlined,
-                                        title: 'Temperature',
-                                        value: '34°C',
-                                        description: 'High - risk of heat stress',
-                                        status: SensorStatus.bad,
-                                      ),
-                                      SizedBox(height: 16),
-                                      _buildSensorTile(
-                                        icon: Icons.water_drop_outlined,
-                                        title: 'Soil Moisture',
-                                        value: '20%',
-                                        description: 'Low - below optimal range of 30-40%',
-                                        status: SensorStatus.bad,
-                                      ),
-                                      SizedBox(height: 16),
-                                      _buildSensorTile(
-                                        icon: Icons.science_outlined,
-                                        title: 'Soil pH',
-                                        value: '5.4',
-                                        description: 'Slightly acidic - ideal: 6.0-6.8',
-                                        status: SensorStatus.bad,
-                                      ),
-                                      SizedBox(height: 16),
-                                      _buildSensorTile(
-                                        icon: Icons.wb_sunny_outlined,
-                                        title: 'Light Intensity',
-                                        value: '78%',
-                                        description: 'Optimal for photosynthesis',
-                                        status: SensorStatus.good,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-
-                                SizedBox(width: 16),
-
-                                // Kolom kanan - Plant Status & Recommendations
-                                Expanded(
-                                  flex: 2,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      _buildPlantStatusSection(),
-                                      SizedBox(height: 20),
-                                      _buildRecommendationSection(),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            );
-                          } else {
-                            // Stack vertically for smaller screens
-                            return Column(
-                              children: [
-                                _buildPlantStatusSection(),
-                                SizedBox(height: 20),
-                                // Sensor Data
-                                _buildSensorTile(
-                                  icon: Icons.thermostat_outlined,
-                                  title: 'Temperature',
-                                  value: '34°C',
-                                  description: 'High - risk of heat stress',
-                                  status: SensorStatus.bad,
-                                ),
-                                SizedBox(height: 16),
-                                _buildSensorTile(
-                                  icon: Icons.water_drop_outlined,
-                                  title: 'Soil Moisture',
-                                  value: '20%',
-                                  description: 'Low - below optimal range of 30-40%',
-                                  status: SensorStatus.bad,
-                                ),
-                                SizedBox(height: 16),
-                                _buildSensorTile(
-                                  icon: Icons.science_outlined,
-                                  title: 'Soil pH',
-                                  value: '5.4',
-                                  description: 'Slightly acidic - ideal: 6.0-6.8',
-                                  status: SensorStatus.bad,
-                                ),
-                                SizedBox(height: 16),
-                                _buildSensorTile(
-                                  icon: Icons.wb_sunny_outlined,
-                                  title: 'Light Intensity',
-                                  value: '78%',
-                                  description: 'Optimal for photosynthesis',
-                                  status: SensorStatus.good,
-                                ),
-                                SizedBox(height: 24),
-                                // Plant Status & Recommendations
-                                _buildRecommendationSection(),
-                              ],
-                            );
-                          }
-                        },
-                      )
-                  )
-              ),
-              SizedBox(height: 20),
-              Text(
-                  'The area around you!',
-                  style: GoogleFonts.montserrat(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14
-                  )
-              ),
-              _buildMapSection(),
-              SizedBox(height: 30),
-              Text(
-                  'Plant Health',
-                  style: GoogleFonts.montserrat(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  )
-              ),
-              Card(
-                color: Colors.white,
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: Column(
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Row(
-                        children: [
-                          const SizedBox(width: 30),
-                          Expanded(  // Gunakan Expanded untuk fleksibilitas
-                            child: SizedBox(
-                              height: 200,
-                              width: 200,
-                              child: PieChart(
-                                PieChartData(
-                                  pieTouchData: PieTouchData(
-                                    touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                                      setState(() {
-                                        if (!event.isInterestedForInteractions ||
-                                            pieTouchResponse == null ||
-                                            pieTouchResponse.touchedSection == null) {
-                                          touchedIndex = -1;
-                                          return;
-                                        }
-                                        touchedIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
-                                      });
-                                    },
-                                  ),
-                                  borderData: FlBorderData(show: false),
-                                  sectionsSpace: 0,
-                                  centerSpaceRadius: 0,
-                                  sections: showingSections(),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 40),
-                          Expanded(  // Gunakan Expanded untuk legenda
-                            flex: 1,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _legendItem(Colors.green[800]!, 'Healthy'),
-                                SizedBox(height: 10),
-                                _legendItem(Colors.orange, 'Unhealthy'),
-                                SizedBox(height: 10),
-                                _legendItem(Colors.red, 'Critical'),
-                              ],
-                            ),
-                          ),
-                        ],
+                      Icon(Icons.circle, size: 8, color: Colors.red),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Alert Status',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.red,
+                        ),
                       ),
                     ],
                   ),
                 ),
-              )
-            ],
-          ),
-        )
+              ],
+            ),
+            const SizedBox(height: 20),
+            _buildEnhancedSensorGrid(),
+            const SizedBox(height: 20),
+            _buildRecommendationSection(),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildMapSection() {
+  Widget _buildEnhancedSensorGrid() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _buildModernSensorTile(
+                icon: Icons.thermostat_outlined,
+                title: 'Temperature',
+                value: '34°C',
+                description: 'High temperature',
+                status: SensorStatus.bad,
+                gradient: [Colors.red.shade400, Colors.red.shade600],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildModernSensorTile(
+                icon: Icons.water_drop_outlined,
+                title: 'Soil Moisture',
+                value: '20%',
+                description: 'Low moisture',
+                status: SensorStatus.bad,
+                gradient: [Colors.orange.shade400, Colors.orange.shade600],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildModernSensorTile(
+                icon: Icons.science_outlined,
+                title: 'Soil pH',
+                value: '5.4',
+                description: 'Slightly acidic',
+                status: SensorStatus.warning,
+                gradient: [Colors.amber.shade400, Colors.amber.shade600],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildModernSensorTile(
+                icon: Icons.wb_sunny_outlined,
+                title: 'Light Intensity',
+                value: '78%',
+                description: 'Optimal light',
+                status: SensorStatus.good,
+                gradient: [Colors.green.shade400, Colors.green.shade600],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildModernSensorTile({
+    required IconData icon,
+    required String title,
+    required String value,
+    required String description,
+    required SensorStatus status,
+    required List<Color> gradient,
+  }) {
     return Container(
-      height: 200, // Tinggi peta
-      width: double.infinity, // Lebar penuh
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.green.shade300),
+        boxShadow: [
+          BoxShadow(
+            color: gradient[0].withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: _buildMapContent(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Icon(icon, color: Colors.white, size: 24),
+              Icon(
+                _getStatusIcon(status),
+                color: Colors.white,
+                size: 16,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: GoogleFonts.montserrat(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          Text(
+            title,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.white.withOpacity(0.9),
+            ),
+          ),
+          Text(
+            description,
+            style: GoogleFonts.inter(
+              fontSize: 10,
+              color: Colors.white.withOpacity(0.8),
+            ),
+          ),
+        ],
       ),
+    );
+  }
+
+  IconData _getStatusIcon(SensorStatus status) {
+    switch (status) {
+      case SensorStatus.good:
+        return Icons.check_circle;
+      case SensorStatus.warning:
+        return Icons.warning;
+      case SensorStatus.bad:
+        return Icons.error;
+    }
+  }
+
+  Widget _buildMapSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Farm Location',
+              style: GoogleFonts.montserrat(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: Colors.black87,
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () {
+                // Navigate to full map
+              },
+              icon: Icon(Icons.open_in_full, size: 16),
+              label: Text('View Full Map'),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF307D32),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          height: 200,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: _buildMapContent(),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildMapContent() {
     if (_isMapLoading) {
       return Container(
-        color: Colors.grey[200],
+        color: Colors.grey[100],
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(color: Colors.green),
-              SizedBox(height: 16),
+              CircularProgressIndicator(
+                color: const Color(0xFF307D32),
+                strokeWidth: 3,
+              ),
+              const SizedBox(height: 16),
               Text(
                 'Loading Map...',
                 style: GoogleFonts.inter(
@@ -349,29 +567,25 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline, color: Colors.red, size: 48),
-              SizedBox(height: 16),
+              Icon(Icons.map_outlined, color: Colors.red, size: 48),
+              const SizedBox(height: 16),
               Text(
-                'Map Error',
-                style: GoogleFonts.inter(
+                'Map Unavailable',
+                style: GoogleFonts.montserrat(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.red,
                 ),
               ),
-              SizedBox(height: 8),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  'Failed to load Google Maps. Please check your API key configuration.',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: Colors.red[700],
-                  ),
+              const SizedBox(height: 8),
+              Text(
+                'Using offline map view',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: Colors.red[600],
                 ),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 12),
               ElevatedButton(
                 onPressed: () {
                   setState(() {
@@ -382,8 +596,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
                 child: Text('Retry'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: const Color(0xFF307D32),
                   foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
             ],
@@ -392,242 +609,255 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    return GoogleMap(
-      onMapCreated: (controller) {
-        _onMapCreated(controller);
-        mapController = controller;
-        print('Google Maps loaded successfully with API key from constants');
-      },
-      initialCameraPosition: CameraPosition(
-        target: _center,
-        zoom: AppConstants.defaultMapZoom,
-      ),
-      markers: {
-        Marker(
-          markerId: MarkerId('farm_location'),
-          position: _center,
-          infoWindow: InfoWindow(
-            title: 'Your Farm',
-            snippet: 'Smart Farming Location',
-          ),
+    // Fallback jika Google Maps gagal load
+    try {
+      return GoogleMap(
+        onMapCreated: _onMapCreated,
+        initialCameraPosition: CameraPosition(
+          target: _center,
+          zoom: AppConstants.defaultMapZoom,
         ),
-      },
-    );
-  }
-
-  Widget _buildSensorTile({
-    required IconData icon,
-    required String title,
-    required String value,
-    required String description,
-    required SensorStatus status,
-  }) {
-    Color statusColor;
-    IconData statusIcon;
-
-    switch (status) {
-      case SensorStatus.good:
-        statusColor = Colors.green;
-        statusIcon = Icons.check_circle;
-        break;
-      case SensorStatus.warning:
-        statusColor = Colors.orange;
-        statusIcon = Icons.warning;
-        break;
-      case SensorStatus.bad:
-        statusColor = Colors.red;
-        statusIcon = Icons.cancel;
-        break;
-    }
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.grey[100],
-            borderRadius: BorderRadius.circular(8),
+        markers: {
+          Marker(
+            markerId: const MarkerId('farm_location'),
+            position: _center,
+            infoWindow: const InfoWindow(
+              title: 'Your Farm',
+              snippet: 'Smart Farming Location',
+            ),
           ),
-          child: Icon(icon, size: 24, color: Colors.grey[600]),
-        ),
-        SizedBox(width: 12),
-        Expanded(
+        },
+      );
+    } catch (e) {
+      // Jika masih error, tampilkan placeholder
+      return Container(
+        color: Colors.green[50],
+        child: Center(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              Icon(Icons.location_on, color: Colors.green, size: 48),
+              const SizedBox(height: 16),
               Text(
-                title,
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[700],
-                ),
-              ),
-              Text(
-                value,
-                style: GoogleFonts.inter(
+                'Farm Location',
+                style: GoogleFonts.montserrat(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: Colors.green,
                 ),
               ),
               Text(
-                description,
+                'Jakarta, Indonesia',
                 style: GoogleFonts.inter(
                   fontSize: 12,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.grey[600],
+                  color: Colors.green[600],
                 ),
               ),
             ],
           ),
         ),
-        Icon(statusIcon, color: statusColor, size: 24),
-      ],
+      );
+    }
+  }
+
+  Widget _buildPlantHealthChart() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Plant Health Overview',
+            style: GoogleFonts.montserrat(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: SizedBox(
+                  height: 180,
+                  child: PieChart(
+                    PieChartData(
+                      pieTouchData: PieTouchData(
+                        touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                          setState(() {
+                            if (!event.isInterestedForInteractions ||
+                                pieTouchResponse == null ||
+                                pieTouchResponse.touchedSection == null) {
+                              touchedIndex = -1;
+                              return;
+                            }
+                            touchedIndex = pieTouchResponse
+                                .touchedSection!.touchedSectionIndex;
+                          });
+                        },
+                      ),
+                      borderData: FlBorderData(show: false),
+                      sectionsSpace: 2,
+                      centerSpaceRadius: 40,
+                      sections: showingSections(),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  children: [
+                    _buildModernLegendItem(
+                      color: const Color(0xFF4CAF50),
+                      label: 'Healthy',
+                      percentage: '55%',
+                    ),
+                    const SizedBox(height: 12),
+                    _buildModernLegendItem(
+                      color: Colors.orange,
+                      label: 'Warning',
+                      percentage: '20%',
+                    ),
+                    const SizedBox(height: 12),
+                    _buildModernLegendItem(
+                      color: Colors.red,
+                      label: 'Critical',
+                      percentage: '25%',
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildPlantStatusSection() {
+  Widget _buildModernLegendItem({
+    required Color color,
+    required String label,
+    required String percentage,
+  }) {
     return Row(
       children: [
         Container(
-          child: SvgPicture.asset(
-              'assets/images/wheat.svg',
-              width: 40,
-              color: Colors.grey[600]),
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
         ),
-        SizedBox(width: 12),
-        Expanded(child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Plant Status',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
-              ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
             ),
-          ],
-        )),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.sentiment_dissatisfied, size: 24, color: Colors.red),
-            SizedBox(width: 4),
-            Text(
-              'Bad',
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.red,
-              ),
-            ),
-          ],
+          ),
+        ),
+        Text(
+          percentage,
+          style: GoogleFonts.montserrat(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
         ),
       ],
     );
   }
 
   Widget _buildRecommendationSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.lightbulb_outline, size: 20, color: Colors.grey[600]),
-            SizedBox(width: 8),
-            Text(
-              'Diagnose & Recommendation',
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 12),
-        Text(
-          'Your plant is experiencing water stress due to low soil moisture and high ambient temperature. The soil is also slightly acidic, which may hinder nutrient absorption.',
-          style: GoogleFonts.inter(
-            fontSize: 12,
-            fontWeight: FontWeight.w400,
-            color: Colors.grey[600],
-            height: 1.4,
-          ),
-        ),
-        SizedBox(height: 12),
-        Text(
-          'Recommendation action:',
-          style: GoogleFonts.inter(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
-        ),
-        SizedBox(height: 8),
-        ..._buildRecommendationList(),
-      ],
-    );
-  }
-
-  List<Widget> _buildRecommendationList() {
-    final recommendations = [
-      'Irrigate the soil to increase soil moisture to at least 30%.',
-      'Consider mulching to reduce evaporation due to high temperatures.',
-      'Apply lime or soil amendment to balance the pH to neutral.',
-      'Monitor again in 6 hours.',
-    ];
-
-    return recommendations.asMap().entries.map((entry) {
-      int index = entry.key + 1;
-      String recommendation = entry.value;
-
-      return Padding(
-        padding: EdgeInsets.only(bottom: 6),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '$index. ',
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[700],
-              ),
-            ),
-            Expanded(
-              child: Text(
-                recommendation,
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.grey[700],
-                  height: 1.3,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.lightbulb, color: Colors.blue.shade600, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Smart Recommendations',
+                style: GoogleFonts.montserrat(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue.shade800,
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Based on current sensor data, your plants need immediate attention due to water stress and high temperature.',
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              color: Colors.blue.shade700,
+              height: 1.4,
             ),
-          ],
-        ),
-      );
-    }).toList();
+          ),
+          const SizedBox(height: 12),
+          ...['Increase irrigation immediately', 'Add mulching for temperature control', 'Monitor pH levels'].map(
+                (recommendation) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      recommendation,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: Colors.blue.shade700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   List<PieChartSectionData> showingSections() {
     return List.generate(3, (i) {
       final isTouched = i == touchedIndex;
-      final fontSize = isTouched ? 25.0 : 16.0;
-      final radius = isTouched ? 90.0 : 80.0;
+      final fontSize = isTouched ? 16.0 : 12.0;
+      final radius = isTouched ? 65.0 : 60.0;
+
       switch (i) {
         case 0:
           return PieChartSectionData(
-            color: Colors.green[800]!,
+            color: const Color(0xFF4CAF50),
             value: 55,
             title: '55%',
             radius: radius,
-            titleStyle: TextStyle(
+            titleStyle: GoogleFonts.inter(
               fontSize: fontSize,
               fontWeight: FontWeight.bold,
               color: Colors.white,
@@ -639,7 +869,7 @@ class _HomeScreenState extends State<HomeScreen> {
             value: 20,
             title: '20%',
             radius: radius,
-            titleStyle: TextStyle(
+            titleStyle: GoogleFonts.inter(
               fontSize: fontSize,
               fontWeight: FontWeight.bold,
               color: Colors.white,
@@ -651,7 +881,7 @@ class _HomeScreenState extends State<HomeScreen> {
             value: 25,
             title: '25%',
             radius: radius,
-            titleStyle: TextStyle(
+            titleStyle: GoogleFonts.inter(
               fontSize: fontSize,
               fontWeight: FontWeight.bold,
               color: Colors.white,
@@ -661,32 +891,5 @@ class _HomeScreenState extends State<HomeScreen> {
           throw Error();
       }
     });
-  }
-
-  Widget _legendItem(Color color, String label) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        children: [
-          Container(
-            width: 25,
-            height: 25,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.black12),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-              label,
-              style: GoogleFonts.montserrat(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              )
-          ),
-        ],
-      ),
-    );
   }
 }
