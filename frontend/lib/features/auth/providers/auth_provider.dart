@@ -58,18 +58,29 @@ class AuthProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      _isLoggedIn = prefs.getBool(_isLoggedInKey) ?? false;
       _token = prefs.getString(_tokenKey);
+      _isLoggedIn = prefs.getBool(_isLoggedInKey) ?? false;
 
       final userDataString = prefs.getString(_userDataKey);
-      if (userDataString != null) {
-        _userData = json.decode(userDataString);
+      if (userDataString != null && userDataString.isNotEmpty) {
+        try {
+          _userData = json.decode(userDataString);
+        } catch (e) {
+          print('Error parsing user data: $e');
+          _userData = null;
+        }
       }
 
-      // Jika ada token, verifikasi apakah masih valid
-      if (_token != null && _isLoggedIn) {
-        await _verifyToken();
+      // Validasi sederhana: jika ada token dan isLoggedIn true, anggap user masih login
+      if (_token != null && _token!.isNotEmpty && _isLoggedIn) {
+        _isLoggedIn = true;
+        print('User found in storage - auto login successful');
+      } else {
+        // Jika tidak ada token atau data tidak lengkap, clear semua
+        await _clearAuthData();
+        print('No valid auth data found - user needs to login');
       }
+
     } catch (e) {
       print('Error initializing auth: $e');
       await _clearAuthData();
@@ -80,27 +91,27 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // Verify if stored token is still valid
-  Future<void> _verifyToken() async {
-    if (_token == null) return;
-
-    try {
-      final response = await http.get(
-        Uri.parse('https://panen-in-teal.vercel.app/api/auth/verify'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_token',
-        },
-      );
-
-      if (response.statusCode != 200) {
-        // Token tidak valid, clear auth data
-        await _clearAuthData();
-      }
-    } catch (e) {
-      print('Error verifying token: $e');
-      await _clearAuthData();
-    }
-  }
+  // Future<void> _verifyToken() async {
+  //   if (_token == null) return;
+  //
+  //   try {
+  //     final response = await http.get(
+  //       Uri.parse('https://panen-in-teal.vercel.app/api/auth/verify'),
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //         'Authorization': 'Bearer $_token',
+  //       },
+  //     );
+  //
+  //     if (response.statusCode != 200) {
+  //       // Token tidak valid, clear auth data
+  //       await _clearAuthData();
+  //     }
+  //   } catch (e) {
+  //     print('Error verifying token: $e');
+  //     await _clearAuthData();
+  //   }
+  // }
 
   // Save auth data to SharedPreferences
   Future<void> _saveAuthData(Map<String, dynamic> responseData) async {
@@ -108,18 +119,37 @@ class AuthProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
 
       // Ambil token dari response (sesuaikan dengan struktur API Anda)
-      _token = responseData['token'] ?? responseData['access_token'];
-      _userData = responseData['user'] ?? responseData['data'];
-      _isLoggedIn = true;
+      _token = responseData['token'] ??
+          responseData['access_token'] ??
+          responseData['data']?['token'] ??
+          responseData['accessToken'];
 
-      // Simpan ke SharedPreferences
-      await prefs.setString(_tokenKey, _token ?? '');
-      await prefs.setString(_userDataKey, json.encode(_userData));
-      await prefs.setBool(_isLoggedInKey, true);
+      _userData = responseData['user'] ??
+          responseData['data'] ??
+          responseData;
+
+      // PENTING: Pastikan token tidak null sebelum menyimpan
+      if (_token != null && _token!.isNotEmpty) {
+        _isLoggedIn = true;
+
+        await prefs.setString(_tokenKey, _token!);
+        await prefs.setString(_userDataKey, json.encode(_userData));
+        await prefs.setBool(_isLoggedInKey, true);
+
+        print('Auth data saved successfully');
+        print('Token: ${_token!.substring(0, 10)}...');
+      } else {
+        print('Warning: Token is null or empty, cannot save auth data');
+        print('Response data keys: ${responseData.keys.toList()}');
+        await _clearAuthData();
+        throw Exception('Token tidak ditemukan dalam response');
+      }
 
       notifyListeners();
     } catch (e) {
       print('Error saving auth data: $e');
+      await _clearAuthData();
+      rethrow;
     }
   }
 
@@ -136,6 +166,7 @@ class AuthProvider extends ChangeNotifier {
       _userData = null;
       _isLoggedIn = false;
 
+      print('Auth data cleared');
       notifyListeners();
     } catch (e) {
       print('Error clearing auth data: $e');
@@ -148,30 +179,24 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Optional: Call logout API endpoint
-      if (_token != null) {
-        await http.post(
-          Uri.parse('https://panen-in-teal.vercel.app/api/auth/logout'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $_token',
-          },
-        );
-      }
-    } catch (e) {
-      print('Error calling logout API: $e');
-    } finally {
-      // Clear local auth data
+      // Langsung clear data lokal tanpa memanggil API logout
       await _clearAuthData();
       _clearLoginForm();
 
+      print('User logged out successfully');
+    } catch (e) {
+      print('Error during logout: $e');
+    } finally {
       _isLoading = false;
       notifyListeners();
 
       // Navigate to login page
-      context.goNamed('login');
+      if (context.mounted) {
+        context.goNamed('login');
+      }
     }
   }
+
 
   // Setters
   void togglePasswordVisibility() {
@@ -196,7 +221,6 @@ class AuthProvider extends ChangeNotifier {
 
   // Method untuk login dengan email atau username
   Future<void> signIn(BuildContext context) async {
-    // Validasi input login
     if (!_validateLoginInput(context)) return;
 
     _isLoginLoading = true;
@@ -213,6 +237,9 @@ class AuthProvider extends ChangeNotifier {
           'password': loginPasswordController.text.trim(),
         }),
       );
+
+      print('Login response status: ${response.statusCode}');
+      print('Login response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
@@ -377,7 +404,6 @@ class AuthProvider extends ChangeNotifier {
       }
     } catch (e) {
       _showErrorDialog(context, 'Terjadi kesalahan jaringan. Silakan coba lagi.');
-      print('Signup error: $e');
     } finally {
       _isLoading = false;
       notifyListeners();

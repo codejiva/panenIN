@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import '../../../shared/widgets/appbar.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -25,10 +26,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize with sample data
-    _firstNameController.text = '';
-    _lastNameController.text = '';
-    _phoneController.text = '';
+    // Delay untuk memastikan context sudah tersedia
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        _loadUserData();
+      } catch (e) {
+        print('Error loading user data: $e');
+      }
+    });
+  }
+
+  void _loadUserData() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final userData = authProvider.userData;
+
+    if (userData != null) {
+      // Load user data dari AuthProvider dengan null safety yang lebih baik
+      final fullName = userData['name']?.toString() ?? userData['username']?.toString() ?? '';
+      final nameParts = fullName.isNotEmpty ? fullName.split(' ') : [];
+
+      _firstNameController.text = userData['first_name']?.toString() ??
+          (nameParts.isNotEmpty ? nameParts.first : '');
+
+      _lastNameController.text = userData['last_name']?.toString() ??
+          (nameParts.length > 1 ? nameParts.skip(1).join(' ') : '');
+
+      _phoneController.text = userData['phone']?.toString() ?? '';
+
+      // Handle birth date
+      final birthDate = userData['birth_date']?.toString() ?? userData['date_of_birth']?.toString();
+      if (birthDate != null && birthDate.isNotEmpty) {
+        try {
+          _selectedDate = DateTime.parse(birthDate);
+          _dateController.text = "${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}";
+        } catch (e) {
+          print('Error parsing birth date: $e');
+        }
+      }
+
+      // Handle gender
+      _selectedGender = userData['gender']?.toString();
+
+      print('User data loaded successfully');
+      print('Name: $fullName');
+      print('Email: ${userData['email']}');
+    } else {
+      print('No user data available');
+    }
   }
 
   @override
@@ -69,6 +113,77 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _showLogoutDialog() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            'Logout',
+            style: GoogleFonts.inter(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            'Are you sure you want to logout from your account?',
+            style: GoogleFonts.inter(
+              fontSize: 16,
+              color: Colors.grey[600],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ),
+            Consumer<AuthProvider>(
+              builder: (context, authProvider, child) {
+                return TextButton(
+                  onPressed: authProvider.isLoading ? null : () async {
+                    Navigator.of(context).pop(); // Close dialog first
+                    await authProvider.logout(context);
+                  },
+                  child: authProvider.isLoading
+                      ? SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Colors.red[600]!,
+                      ),
+                    ),
+                  )
+                      : Text(
+                    'Logout',
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      color: Colors.red[600],
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -88,6 +203,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _buildForm(),
                     const SizedBox(height: 40),
                     _buildUpdateButton(),
+                    const SizedBox(height: 20),
+                    _buildLogoutButton(),
                   ],
                 ),
               ),
@@ -100,77 +217,95 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildProfileHeader() {
-    return Column(
-      children: [
-        Stack(
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        final userData = authProvider.userData;
+        final userName = userData?['name']?.toString() ??
+            userData?['username']?.toString() ??
+            userData?['first_name']?.toString() ??
+            'User';
+        final userEmail = userData?['email']?.toString() ?? 'user@example.com';
+        final userAvatar = userData?['avatar']?.toString();
+
+        return Column(
           children: [
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE91E63),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+            Stack(
+              children: [
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE91E63),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(50),
-                child: Image.asset(
-                  'assets/images/profile_placeholder.png', // Replace with your asset
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Icon(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(50),
+                    child: userAvatar != null && userAvatar.isNotEmpty
+                        ? Image.network(
+                      userAvatar,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(
+                          Icons.person,
+                          size: 50,
+                          color: Colors.white,
+                        );
+                      },
+                    )
+                        : const Icon(
                       Icons.person,
                       size: 50,
                       color: Colors.white,
-                    );
-                  },
+                    ),
+                  ),
                 ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4CAF50),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: const Icon(
+                      Icons.camera_alt,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              userName,
+              style: GoogleFonts.inter(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
               ),
             ),
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4CAF50),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-                child: const Icon(
-                  Icons.camera_alt,
-                  size: 16,
-                  color: Colors.white,
-                ),
+            const SizedBox(height: 4),
+            Text(
+              userEmail,
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: Colors.grey[600],
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'Agribuddy',
-          style: GoogleFonts.inter(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Agribuddy@gmail.com',
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -406,33 +541,81 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildUpdateButton() {
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        return SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: authProvider.isLoading ? null : () {
+              // Handle update profile
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Profile updated successfully!'),
+                  backgroundColor: Color(0xFF4CAF50),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4CAF50),
+              minimumSize: const Size(double.infinity, 56),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(28),
+              ),
+              elevation: 2,
+            ),
+            child: authProvider.isLoading
+                ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            )
+                : Text(
+              'Update Profile',
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLogoutButton() {
     return SizedBox(
       width: double.infinity,
-      child: ElevatedButton(
-        onPressed: () {
-          // Handle update profile
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Profile updated successfully!'),
-              backgroundColor: Color(0xFF4CAF50),
-            ),
-          );
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF4CAF50),
+      child: OutlinedButton(
+        onPressed: _showLogoutDialog,
+        style: OutlinedButton.styleFrom(
           minimumSize: const Size(double.infinity, 56),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(28),
           ),
-          elevation: 2,
+          side: BorderSide(color: Colors.red[400]!, width: 1),
         ),
-        child: Text(
-          'Update Profile',
-          style: GoogleFonts.inter(
-            fontSize: 16,
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.logout,
+              color: Colors.red[600],
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Logout',
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                color: Colors.red[600],
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );
