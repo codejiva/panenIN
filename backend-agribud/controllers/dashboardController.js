@@ -1,8 +1,10 @@
 const pool = require('../config/db');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Groq = require('groq-sdk'); // 1. Import library Groq
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+// 2. Inisialisasi Groq dengan API key baru
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+});
 
 // Mendapatkan ringkasan terakhir dari DB
 exports.getLatestSummary = async (req, res) => {
@@ -19,18 +21,18 @@ exports.getLatestSummary = async (req, res) => {
   }
 };
 
-// Membuat ringkasan harian baru
+// bikin summary pake grok
 exports.generateDailySummary = async (req, res) => {
   try {
-    // 1. Simulasi data rata-rata harian (nanti bisa diganti data asli)
+    // Simulasi data rata-rata harian
     const avgData = {
-      temperature: (Math.random() * 5 + 26).toFixed(2), // 26-31°C
-      humidity: (Math.random() * 15 + 65).toFixed(2),    // 65-80%
-      ph: (Math.random() * 0.5 + 6.0).toFixed(2),        // 6.0-6.5
-      light_intensity: Math.floor(Math.random() * 2000 + 12000) // 12000-14000 lux
+      temperature: (Math.random() * 5 + 26).toFixed(2),
+      humidity: (Math.random() * 15 + 65).toFixed(2),
+      ph: (Math.random() * 0.5 + 6.0).toFixed(2),
+      light_intensity: Math.floor(Math.random() * 2000 + 12000)
     };
 
-    // 2. Buat prompt untuk Gemini agar mengembalikan JSON
+    // Prompt tetap sama, tapi pake grok sekarnag
     const prompt = `
       Anda adalah seorang ahli agronomi. Berdasarkan data sensor harian dari sebuah kebun cabai berikut:
       - Rata-rata Suhu: ${avgData.temperature}°C
@@ -38,56 +40,47 @@ exports.generateDailySummary = async (req, res) => {
       - Rata-rata pH Tanah: ${avgData.ph}
       - Rata-rata Intensitas Cahaya: ${avgData.light_intensity} lux
 
-      Berikan analisis dalam format JSON. JANGAN tambahkan markdown atau teks lain di luar JSON. Formatnya harus seperti ini:
-      {
-        "plant_status": "...",
-        "diagnosis": "...",
-        "recommendation": "..."
-      }
-
+      Berikan analisis dalam format JSON. JANGAN tambahkan markdown atau teks lain di luar JSON.
       Isi "plant_status" dengan 1-3 kata (contoh: "Tumbuh Optimal", "Sedikit Stres Panas", "Risiko Jamur").
       Isi "diagnosis" dengan penjelasan singkat (1-2 kalimat) mengenai kondisi saat ini.
       Isi "recommendation" dengan 1-2 tindakan konkret yang bisa dilakukan petani.
     `;
 
-    // 3. Panggil API Gemini
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
-    
-    // Membersihkan output dari Gemini jika ada markdown
-    const cleanedText = responseText.replace(/```json/g, '').replace(/```/g, '');
-    const analysis = JSON.parse(cleanedText);
+    // 3. Panggil API Groq dengan model Llama 3
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      model: 'llama3-8b-8192', // Model yang cepat dan cerdas
+      temperature: 0.7,
+      response_format: { type: 'json_object' }, // Memaksa output menjadi JSON
+    });
 
-    // 4. Simpan hasilnya ke database
+    const responseContent = chatCompletion.choices[0]?.message?.content;
+    if (!responseContent) {
+        throw new Error("AI did not return a valid response.");
+    }
+    
+    const analysis = JSON.parse(responseContent);
+
+    // Simpan hasilnya ke database (logika ini tidak berubah)
     const today = new Date().toISOString().slice(0, 10);
     const sql = `
       INSERT INTO daily_summaries (summary_date, avg_temperature, avg_humidity, avg_ph, avg_light_intensity, plant_status, diagnosis, recommendation)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
-      avg_temperature = VALUES(avg_temperature),
-      avg_humidity = VALUES(avg_humidity),
-      avg_ph = VALUES(avg_ph),
-      avg_light_intensity = VALUES(avg_light_intensity),
-      plant_status = VALUES(plant_status),
-      diagnosis = VALUES(diagnosis),
-      recommendation = VALUES(recommendation);
+      avg_temperature = VALUES(avg_temperature), avg_humidity = VALUES(avg_humidity), avg_ph = VALUES(avg_ph),
+      avg_light_intensity = VALUES(avg_light_intensity), plant_status = VALUES(plant_status),
+      diagnosis = VALUES(diagnosis), recommendation = VALUES(recommendation);
     `;
     
     await pool.query(sql, [
-      today,
-      avgData.temperature,
-      avgData.humidity,
-      avgData.ph,
-      avgData.light_intensity,
-      analysis.plant_status,
-      analysis.diagnosis,
-      analysis.recommendation
+      today, avgData.temperature, avgData.humidity, avgData.ph,
+      avgData.light_intensity, analysis.plant_status, analysis.diagnosis, analysis.recommendation
     ]);
 
-    res.status(201).json({ message: 'Daily summary generated successfully.', data: analysis });
+    res.status(201).json({ message: 'Daily summary generated successfully with Groq.', data: analysis });
 
   } catch (error) {
-    console.error("Error generating daily summary:", error);
+    console.error("Error generating daily summary with Groq:", error);
     res.status(500).json({ message: 'Server error or error communicating with AI model.' });
   }
 };
