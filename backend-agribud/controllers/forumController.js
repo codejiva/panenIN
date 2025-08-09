@@ -19,11 +19,12 @@ const buildReplyTree = (replies, parentId = null) => {
 
 // --- Controller Functions ---
 
-// Dapatkan semua postingan dengan sorting
+// Dapatkan semua postingan dengan sorting DAN PENCARIAN (judul atau ID)
 exports.getAllPosts = async (req, res) => {
-  // Ambil parameter sorting dari query URL, dengan nilai default
-  const sortBy = req.query.sortBy || 'created_at'; // 'created_at' atau 'reply_count'
-  const order = req.query.order || 'DESC'; // 'ASC' atau 'DESC'
+  // Ambil parameter dari query URL
+  const sortBy = req.query.sortBy || 'created_at';
+  const order = req.query.order || 'DESC';
+  const search = req.query.search || '';
 
   // Validasi input
   if (!['created_at', 'reply_count'].includes(sortBy) || !['ASC', 'DESC'].includes(order.toUpperCase())) {
@@ -31,7 +32,7 @@ exports.getAllPosts = async (req, res) => {
   }
 
   try {
-    const postsQuery = `
+    let postsQuery = `
       SELECT 
         p.id, p.title, p.content, p.created_at,
         u.username, r.name AS role_name,
@@ -39,9 +40,27 @@ exports.getAllPosts = async (req, res) => {
       FROM posts p
       JOIN users u ON p.user_id = u.id
       JOIN roles r ON u.role_id = r.id
-      ORDER BY ${sortBy === 'reply_count' ? 'reply_count' : 'p.created_at'} ${order.toUpperCase()};
     `;
-    const [posts] = await pool.query(postsQuery);
+    const queryParams = [];
+
+    // Logika pencarian baru: bisa berdasarkan judul (string) atau ID (angka)
+    if (search) {
+      // Cek apakah 'search' adalah angka yang valid
+      const searchId = parseInt(search, 10);
+      if (!isNaN(searchId) && searchId.toString() === search) {
+        // Jika angka, cari berdasarkan ID
+        postsQuery += ` WHERE p.id = ?`;
+        queryParams.push(searchId);
+      } else {
+        // Jika bukan angka, cari berdasarkan judul
+        postsQuery += ` WHERE p.title LIKE ?`;
+        queryParams.push(`%${search}%`);
+      }
+    }
+
+    postsQuery += ` ORDER BY ${sortBy === 'reply_count' ? 'reply_count' : 'p.created_at'} ${order.toUpperCase()};`;
+    
+    const [posts] = await pool.query(postsQuery, queryParams);
     res.status(200).json(posts);
   } catch (error) {
     console.error("Error fetching posts:", error);
@@ -52,12 +71,11 @@ exports.getAllPosts = async (req, res) => {
 // Dapatkan satu post dengan nested replies
 exports.getPostById = async (req, res) => {
   const { postId } = req.params;
-  const sortBy = req.query.sortBy || 'created_at'; // 'created_at' atau 'like_count'
-  const order = req.query.order || 'ASC'; // 'ASC' atau 'DESC'
-  const filter = req.query.filter; // 'approved'
+  const sortBy = req.query.sortBy || 'created_at';
+  const order = req.query.order || 'ASC';
+  const filter = req.query.filter;
 
   try {
-    // 1. Ambil data postingan utama
     const postQuery = `
       SELECT p.id, p.title, p.content, p.created_at, p.user_id AS author_id, u.username, r.name AS role_name
       FROM posts p
@@ -71,7 +89,6 @@ exports.getPostById = async (req, res) => {
     }
     const post = posts[0];
 
-    // 2. Ambil semua balasan untuk postingan ini
     let repliesQuery = `
       SELECT 
         rep.id, rep.content, rep.created_at, rep.parent_reply_id, rep.is_expert_approved,
@@ -84,18 +101,15 @@ exports.getPostById = async (req, res) => {
       WHERE rep.post_id = ?
     `;
 
-    // Terapkan filter jika ada
     if (filter === 'approved') {
       repliesQuery += ' AND rep.is_expert_approved = TRUE';
     }
 
-    // Terapkan sorting
     const orderByClause = sortBy === 'like_count' ? 'like_count' : 'rep.created_at';
     repliesQuery += ` ORDER BY ${orderByClause} ${order.toUpperCase()};`;
 
     const [replies] = await pool.query(repliesQuery, [post.author_id, postId]);
 
-    // 3. Susun balasan menjadi struktur berantai (nested)
     post.replies = buildReplyTree(replies);
 
     res.status(200).json(post);
@@ -105,7 +119,7 @@ exports.getPostById = async (req, res) => {
   }
 };
 
-// Membuat postingan baru (tidak berubah)
+// Membuat postingan baru 
 exports.createPost = async (req, res) => {
   const { userId, title, content } = req.body;
   if (!userId || !title || !content) {
@@ -121,10 +135,10 @@ exports.createPost = async (req, res) => {
   }
 };
 
-// Membuat balasan baru (bisa nested)
+// Membuat balasan baru
 exports.createReply = async (req, res) => {
   const { postId } = req.params;
-  const { userId, content, parentReplyId = null } = req.body; // parentReplyId bersifat opsional
+  const { userId, content, parentReplyId = null } = req.body;
 
   if (!userId || !content) {
     return res.status(400).json({ message: 'userId and content are required.' });
@@ -152,17 +166,14 @@ exports.toggleLike = async (req, res) => {
   const targetReplyId = replyId || null;
 
   try {
-    // Cek apakah user sudah pernah like item ini
     const checkSql = 'SELECT id FROM likes WHERE user_id = ? AND (post_id = ? OR reply_id = ?)';
     const [existingLikes] = await pool.query(checkSql, [userId, targetPostId, targetReplyId]);
 
     if (existingLikes.length > 0) {
-      // Jika sudah ada, hapus (unlike)
       const deleteSql = 'DELETE FROM likes WHERE id = ?';
       await pool.query(deleteSql, [existingLikes[0].id]);
       res.status(200).json({ message: 'Unliked successfully.' });
     } else {
-      // Jika belum ada, tambahkan (like)
       const insertSql = 'INSERT INTO likes (user_id, post_id, reply_id) VALUES (?, ?, ?)';
       await pool.query(insertSql, [userId, targetPostId, targetReplyId]);
       res.status(201).json({ message: 'Liked successfully.' });
@@ -173,9 +184,8 @@ exports.toggleLike = async (req, res) => {
   }
 };
 
-// Approve sebuah reply (hanya untuk advisor)
+// Approve sebuah reply
 exports.approveReply = async (req, res) => {
-  // PENTING: Di aplikasi sungguhan, tambahkan middleware untuk memastikan hanya user dengan role 'advisor' yang bisa mengakses endpoint ini.
   const { replyId } = req.params;
 
   try {
