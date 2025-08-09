@@ -13,6 +13,8 @@ const searchRoute = require('./routes/searchRoute');
 const authRoutes = require('./routes/authRoute');
 const chatRoute = require('./routes/chatRoute');
 const dashboardRoutes = require('./routes/dashboardRoute');
+const forumRoute = require('./routes/forumRoute');
+
 
 // --- Import Services ---
 const { loadShapefile } = require('./services/shapefileService');
@@ -36,6 +38,7 @@ app.use('/api/search', searchRoute);
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoute);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/forum', forumRoute);
 
 // --- Logika Socket.IO untuk Dashboard Real-time ---
 io.on('connection', (socket) => {
