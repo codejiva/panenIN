@@ -17,16 +17,14 @@ const buildReplyTree = (replies, parentId = null) => {
   return tree;
 };
 
-// --- Controller Functions --
+// --- Controller Functions ---
 
 // Dapatkan semua postingan dengan sorting DAN PENCARIAN (judul atau ID)
 exports.getAllPosts = async (req, res) => {
-  // Ambil parameter dari query URL
   const sortBy = req.query.sortBy || 'created_at';
   const order = req.query.order || 'DESC';
   const search = req.query.search || '';
 
-  // Validasi input
   if (!['created_at', 'reply_count'].includes(sortBy) || !['ASC', 'DESC'].includes(order.toUpperCase())) {
     return res.status(400).json({ message: 'Invalid sort parameters.' });
   }
@@ -43,16 +41,12 @@ exports.getAllPosts = async (req, res) => {
     `;
     const queryParams = [];
 
-    // Logika pencarian baru: bisa berdasarkan judul (string) atau ID (angka)
     if (search) {
-      // Cek apakah 'search' adalah angka yang valid
       const searchId = parseInt(search, 10);
       if (!isNaN(searchId) && searchId.toString() === search) {
-        // Jika angka, cari berdasarkan ID
         postsQuery += ` WHERE p.id = ?`;
         queryParams.push(searchId);
       } else {
-        // Jika bukan angka, cari berdasarkan judul
         postsQuery += ` WHERE p.title LIKE ?`;
         queryParams.push(`%${search}%`);
       }
@@ -89,12 +83,13 @@ exports.getPostById = async (req, res) => {
     }
     const post = posts[0];
 
+    // --- PERBAIKAN BUG DI SINI ---
     let repliesQuery = `
       SELECT 
         rep.id, rep.content, rep.created_at, rep.parent_reply_id, rep.is_expert_approved,
         u.id AS user_id, u.username, r.name AS role_name,
         (SELECT COUNT(*) FROM likes WHERE reply_id = rep.id) AS like_count,
-        (CASE WHEN rep.user_id = ? THEN TRUE ELSE FALSE END) AS is_op
+        (CASE WHEN rep.user_id = ? THEN 1 ELSE 0 END) AS is_op
       FROM replies rep
       JOIN users u ON rep.user_id = u.id
       JOIN roles r ON u.role_id = r.id
@@ -102,7 +97,7 @@ exports.getPostById = async (req, res) => {
     `;
 
     if (filter === 'approved') {
-      repliesQuery += ' AND rep.is_expert_approved = TRUE';
+      repliesQuery += ' AND rep.is_expert_approved = 1'; // Menggunakan 1 untuk TRUE
     }
 
     const orderByClause = sortBy === 'like_count' ? 'like_count' : 'rep.created_at';
