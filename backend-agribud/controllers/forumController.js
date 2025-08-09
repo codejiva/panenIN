@@ -17,7 +17,7 @@ const buildReplyTree = (replies, parentId = null) => {
   return tree;
 };
 
-// --- Controller Functions ---
+// --- Controller Functions --
 
 // Dapatkan semua postingan dengan sorting DAN PENCARIAN (judul atau ID)
 exports.getAllPosts = async (req, res) => {
