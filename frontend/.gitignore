@@ -46,3 +46,6 @@ app.*.map.json
 
 # Ignore constants.dart
 /lib/config/constants/constants.dart
+
+# API Keys
+gradle.properties
