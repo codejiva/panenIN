@@ -21,7 +21,7 @@ exports.getLatestSummary = async (req, res) => {
   }
 };
 
-// Membuat ringkasan harian baru menggunakan Groq
+// bikin summary pake grok
 exports.generateDailySummary = async (req, res) => {
   try {
     // Simulasi data rata-rata harian
@@ -32,7 +32,7 @@ exports.generateDailySummary = async (req, res) => {
       light_intensity: Math.floor(Math.random() * 2000 + 12000)
     };
 
-    // Prompt tetap sama, tapi kita perintahkan AI untuk merespons dalam format JSON
+    // Prompt tetap sama, tapi pake grok sekarnag
     const prompt = `
       Anda adalah seorang ahli agronomi. Berdasarkan data sensor harian dari sebuah kebun cabai berikut:
       - Rata-rata Suhu: ${avgData.temperature}°C
