@@ -3,11 +3,13 @@ import 'package:PanenIn/config/constants/colors.dart';
 import 'package:PanenIn/features/forum/widgets/ForumPostCard.dart';
 import 'package:PanenIn/features/forum/models/forum_model.dart';
 import 'package:PanenIn/features/forum/services/forum_service.dart';
+import 'package:PanenIn/features/auth/services/auth_service.dart';
 import 'package:PanenIn/shared/widgets/appbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 class ForumScreen extends StatefulWidget {
   const ForumScreen({super.key});
@@ -23,6 +25,7 @@ class _ForumScreenState extends State<ForumScreen> {
   List<ForumPost> forumPosts = [];
   bool isLoading = true;
   String? errorMessage;
+  Set<int> likingPosts = {}; // Track which posts are being liked
 
   // Auto-refresh variables
   Timer? _refreshTimer;
@@ -51,9 +54,9 @@ class _ForumScreenState extends State<ForumScreen> {
     _instance?._loadForumPosts();
   }
 
-  /// Starts auto-refresh timer (every 1 second for better responsiveness)
+  /// Starts auto-refresh timer
   void _startAutoRefresh() {
-    _refreshTimer = Timer.periodic(const Duration(seconds: 3600), (timer) {
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       if (_isAutoRefreshEnabled && mounted && !isLoading) {
         _loadForumPosts(silent: true);
       }
@@ -104,7 +107,17 @@ class _ForumScreenState extends State<ForumScreen> {
         });
       }
 
-      final posts = await _forumService.getForumPosts();
+      // Get user ID for like status
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      int? userId;
+
+      if (authProvider.isLoggedIn && authProvider.userData != null) {
+        userId = authProvider.userData?['id'] ??
+            authProvider.userData?['user_id'] ??
+            authProvider.userData?['userId'];
+      }
+
+      final posts = await _forumService.getForumPosts(userId: userId);
 
       if (mounted) {
         setState(() {
@@ -147,14 +160,93 @@ class _ForumScreenState extends State<ForumScreen> {
 
   /// Navigates to ask question screen
   void _navigateToAskQuestion() {
-    context.goNamed('ask');
+    // Fixed: Use correct route name from updated router
+    context.goNamed('ask_question');
   }
 
-  /// Navigates to post details (if you have this feature)
+  /// Navigates to post details
   void _navigateToPostDetails(ForumPost post) {
-    // Implement navigation to post details
-    context.goNamed('answer', pathParameters: {'postId': post.id.toString()});
-    debugPrint('Navigate to post details: ${post.id}');
+    // Fixed: Use correct route name and parameter from updated router
+    context.goNamed('post_detail', pathParameters: {'postId': post.id.toString()});
+  }
+
+  /// Handles like/unlike for a post
+  Future<void> _handlePostLike(ForumPost post) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    if (!authProvider.isLoggedIn) {
+      _showErrorSnackBar('You must be logged in to like posts');
+      return;
+    }
+
+    // Prevent multiple simultaneous like requests for the same post
+    if (likingPosts.contains(post.id)) return;
+
+    setState(() {
+      likingPosts.add(post.id);
+    });
+
+    try {
+      final userId = authProvider.userData?['id'] ??
+          authProvider.userData?['user_id'] ??
+          authProvider.userData?['userId'];
+
+      await _forumService.toggleLike(
+        postId: post.id,
+        userId: userId,
+      );
+
+      // Update the post in the list immediately for better UX
+      final postIndex = forumPosts.indexWhere((p) => p.id == post.id);
+      if (postIndex != -1) {
+        setState(() {
+          forumPosts[postIndex] = forumPosts[postIndex].copyWith(
+            isLikedByUser: !post.isLikedByUser,
+            likeCount: post.isLikedByUser ?
+            post.likeCount - 1 :
+            post.likeCount + 1,
+          );
+        });
+      }
+
+      // Show feedback
+      _showSuccessSnackBar(
+        post.isLikedByUser ? 'Post unliked' : 'Post liked!',
+      );
+
+    } catch (e) {
+      _showErrorSnackBar('Failed to ${post.isLikedByUser ? "unlike" : "like"} post');
+      debugPrint('Error toggling like: $e');
+    } finally {
+      setState(() {
+        likingPosts.remove(post.id);
+      });
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red[600],
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  void _showSuccessSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.green[600],
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    }
   }
 
   @override
@@ -250,7 +342,7 @@ class _ForumScreenState extends State<ForumScreen> {
             ],
           ),
         ),
-        SizedBox(width: 1),
+        const SizedBox(width: 16),
         _buildAskButton(),
       ],
     );
@@ -274,14 +366,14 @@ class _ForumScreenState extends State<ForumScreen> {
           children: [
             SvgPicture.asset(
               'assets/images/Edit.svg',
-               color: AppColors.primary
+              color: AppColors.primary,
             ),
             const SizedBox(width: 4),
             Text(
               'Ask',
               style: GoogleFonts.sora(
                 fontSize: 13,
-                color: AppColors.primary
+                color: AppColors.primary,
               ),
             ),
           ],
@@ -429,9 +521,13 @@ class _ForumScreenState extends State<ForumScreen> {
               author: post.maskedUsername,
               advisorName: post.advisorName,
               commentCount: post.commentCount,
+              likeCount: post.likeCount,
+              isLiked: post.isLikedByUser,
               createdAt: post.createdAt,
               hasAdvisorResponse: post.hasAdvisorResponse,
+              isLoading: likingPosts.contains(post.id),
               onTap: () => _navigateToPostDetails(post),
+              onLike: () => _handlePostLike(post),
             ),
             const SizedBox(height: 15),
           ],

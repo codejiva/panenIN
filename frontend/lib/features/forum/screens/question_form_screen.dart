@@ -1,6 +1,5 @@
-// File: lib/features/forum/screens/question_form_screen.dart
-
 import 'package:PanenIn/config/constants/colors.dart';
+import 'package:PanenIn/features/auth/services/auth_service.dart';
 import 'package:PanenIn/features/forum/services/forum_service.dart';
 import 'package:PanenIn/shared/widgets/appbar.dart';
 import 'package:flutter/material.dart';
@@ -10,9 +9,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-
-// Import AuthProvider
-import '../../auth/providers/auth_provider.dart';
 
 class QuestionFormScreen extends StatefulWidget {
   const QuestionFormScreen({super.key});
