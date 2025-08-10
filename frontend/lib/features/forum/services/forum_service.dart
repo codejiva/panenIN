@@ -26,13 +26,20 @@ class ForumService {
   Future<List<ForumPost>> getForumPosts({
     String sortBy = 'created_at',
     String order = 'DESC',
+    int? userId, // Add userId to check like status
   }) async {
     try {
+      final queryParams = {
+        'sortBy': sortBy,
+        'order': order,
+      };
+
+      if (userId != null) {
+        queryParams['userId'] = userId.toString();
+      }
+
       final uri = Uri.parse('$_baseUrl/forum/posts').replace(
-        queryParameters: {
-          'sortBy': sortBy,
-          'order': order,
-        },
+        queryParameters: queryParams,
       );
 
       debugPrint('Fetching forum posts from: $uri');
@@ -45,11 +52,25 @@ class ForumService {
       debugPrint('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final List<dynamic> jsonData = json.decode(response.body);
+        try {
+          final List<dynamic> jsonData = json.decode(response.body);
 
-        return jsonData
-            .map((postJson) => ForumPost.fromJson(postJson))
-            .toList();
+          return jsonData
+              .map((postJson) {
+            try {
+              return ForumPost.fromJson(postJson as Map<String, dynamic>);
+            } catch (e) {
+              debugPrint('Error parsing post: $e');
+              return null;
+            }
+          })
+              .where((post) => post != null)
+              .cast<ForumPost>()
+              .toList();
+        } catch (e) {
+          debugPrint('Error parsing response: $e');
+          return [];
+        }
       } else {
         throw Exception('Failed to load forum posts. Status: ${response.statusCode}');
       }
@@ -67,6 +88,7 @@ class ForumService {
         String sortBy = 'created_at',
         String order = 'ASC',
         String? filter,
+        int? userId, // Add userId to check like status
       }) async {
     try {
       final queryParams = <String, String>{
@@ -78,8 +100,11 @@ class ForumService {
         queryParams['filter'] = filter;
       }
 
-      // Use path parameter for postId
-      final uri = Uri.parse('$_baseUrl/forum/posts/').replace(
+      if (userId != null) {
+        queryParams['userId'] = userId.toString();
+      }
+
+      final uri = Uri.parse('$_baseUrl/forum/posts/$postId').replace(
         queryParameters: queryParams,
       );
 
@@ -94,23 +119,7 @@ class ForumService {
 
       if (response.statusCode == 200) {
         final dynamic jsonData = json.decode(response.body);
-
-        // Handle both single object and array responses
-        if (jsonData is List) {
-          // If backend returns array, find the post with matching ID
-          final postMap = (jsonData as List<dynamic>)
-              .cast<Map<String, dynamic>>()
-              .firstWhere(
-                (post) => post['id'] == postId,
-            orElse: () => throw Exception('Post with ID $postId not found'),
-          );
-          return ForumPost.fromJson(postMap);
-        } else if (jsonData is Map<String, dynamic>) {
-          // If backend returns single object
-          return ForumPost.fromJson(jsonData);
-        } else {
-          throw Exception('Unexpected response format');
-        }
+        return ForumPost.fromJson(jsonData);
       } else if (response.statusCode == 404) {
         throw Exception('Forum post not found');
       } else {
@@ -151,7 +160,8 @@ class ForumService {
       if (response.statusCode == 201) {
         return true;
       } else {
-        throw Exception('Failed to create forum post. Status: ${response.statusCode}');
+        final errorData = json.decode(response.body);
+        throw Exception(errorData['message'] ?? 'Failed to create forum post');
       }
     } catch (e) {
       debugPrint('Error in submitForumPost: $e');
@@ -189,7 +199,8 @@ class ForumService {
       if (response.statusCode == 201) {
         return true;
       } else {
-        throw Exception('Failed to create reply. Status: ${response.statusCode}');
+        final errorData = json.decode(response.body);
+        throw Exception(errorData['message'] ?? 'Failed to create reply');
       }
     } catch (e) {
       debugPrint('Error in createReply: $e');
@@ -198,9 +209,9 @@ class ForumService {
   }
 
   /// Toggles like on a post or reply
-  /// Returns success status
+  /// Returns the updated like status and count
   /// Throws [Exception] if the request fails
-  Future<bool> toggleLike({
+  Future<Map<String, dynamic>> toggleLike({
     int? postId,
     int? replyId,
     required int userId,
@@ -236,9 +247,18 @@ class ForumService {
       debugPrint('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return true;
+        final responseData = json.decode(response.body);
+
+        // Return like status and count if available
+        return {
+          'success': true,
+          'message': responseData['message'] ?? 'Like toggled successfully',
+          'isLiked': responseData['isLiked'],
+          'likeCount': responseData['likeCount'],
+        };
       } else {
-        throw Exception('Failed to toggle like. Status: ${response.statusCode}');
+        final errorData = json.decode(response.body);
+        throw Exception(errorData['message'] ?? 'Failed to toggle like');
       }
     } catch (e) {
       debugPrint('Error in toggleLike: $e');
@@ -269,7 +289,8 @@ class ForumService {
       } else if (response.statusCode == 404) {
         throw Exception('Reply not found');
       } else {
-        throw Exception('Failed to approve reply. Status: ${response.statusCode}');
+        final errorData = json.decode(response.body);
+        throw Exception(errorData['message'] ?? 'Failed to approve reply');
       }
     } catch (e) {
       debugPrint('Error in approveReply: $e');
@@ -285,15 +306,22 @@ class ForumService {
     int limit = 10,
     String sortBy = 'created_at',
     String order = 'DESC',
+    int? userId,
   }) async {
     try {
+      final queryParams = {
+        'page': page.toString(),
+        'limit': limit.toString(),
+        'sortBy': sortBy,
+        'order': order,
+      };
+
+      if (userId != null) {
+        queryParams['userId'] = userId.toString();
+      }
+
       final uri = Uri.parse('$_baseUrl/forum/posts').replace(
-        queryParameters: {
-          'page': page.toString(),
-          'limit': limit.toString(),
-          'sortBy': sortBy,
-          'order': order,
-        },
+        queryParameters: queryParams,
       );
 
       debugPrint('Fetching paginated forum posts from: $uri');
@@ -305,26 +333,161 @@ class ForumService {
       debugPrint('Response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        try {
+          final Map<String, dynamic> responseData = json.decode(response.body);
 
-        // Check if response has pagination structure
-        if (responseData.containsKey('data')) {
-          final List<dynamic> jsonData = responseData['data'];
-          return jsonData
-              .map((postJson) => ForumPost.fromJson(postJson))
-              .toList();
-        } else {
-          // Fallback to direct array response
-          final List<dynamic> jsonData = json.decode(response.body);
-          return jsonData
-              .map((postJson) => ForumPost.fromJson(postJson))
-              .toList();
+          // Check if response has pagination structure
+          if (responseData.containsKey('data')) {
+            final List<dynamic> jsonData = responseData['data'];
+            return jsonData
+                .map((postJson) {
+              try {
+                return ForumPost.fromJson(postJson as Map<String, dynamic>);
+              } catch (e) {
+                debugPrint('Error parsing paginated post: $e');
+                return null;
+              }
+            })
+                .where((post) => post != null)
+                .cast<ForumPost>()
+                .toList();
+          } else {
+            // Fallback to direct array response
+            final List<dynamic> jsonData = json.decode(response.body);
+            return jsonData
+                .map((postJson) {
+              try {
+                return ForumPost.fromJson(postJson as Map<String, dynamic>);
+              } catch (e) {
+                debugPrint('Error parsing direct post: $e');
+                return null;
+              }
+            })
+                .where((post) => post != null)
+                .cast<ForumPost>()
+                .toList();
+          }
+        } catch (e) {
+          debugPrint('Error parsing paginated response: $e');
+          return [];
         }
       } else {
         throw Exception('Failed to load forum posts. Status: ${response.statusCode}');
       }
     } catch (e) {
       debugPrint('Error in getForumPostsPaginated: $e');
+      throw Exception('Network error: $e');
+    }
+  }
+
+  /// Gets reply count for a specific post
+  Future<int> getReplyCount(int postId) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/forum/posts/$postId/replies/count');
+
+      final response = await http
+          .get(uri, headers: _defaultHeaders)
+          .timeout(_timeout);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['count'] ?? 0;
+      } else {
+        return 0;
+      }
+    } catch (e) {
+      debugPrint('Error getting reply count: $e');
+      return 0;
+    }
+  }
+
+  /// Gets like count for a post or reply
+  Future<Map<String, dynamic>> getLikeInfo({
+    int? postId,
+    int? replyId,
+    int? userId,
+  }) async {
+    try {
+      late Uri uri;
+      if (postId != null) {
+        uri = Uri.parse('$_baseUrl/forum/posts/$postId/likes');
+      } else if (replyId != null) {
+        uri = Uri.parse('$_baseUrl/forum/replies/$replyId/likes');
+      } else {
+        throw Exception('Either postId or replyId must be provided');
+      }
+
+      if (userId != null) {
+        uri = uri.replace(queryParameters: {'userId': userId.toString()});
+      }
+
+      final response = await http
+          .get(uri, headers: _defaultHeaders)
+          .timeout(_timeout);
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        return {'count': 0, 'isLiked': false};
+      }
+    } catch (e) {
+      debugPrint('Error getting like info: $e');
+      return {'count': 0, 'isLiked': false};
+    }
+  }
+
+  /// Search posts by title or content
+  Future<List<ForumPost>> searchPosts({
+    required String query,
+    String sortBy = 'created_at',
+    String order = 'DESC',
+    int? userId,
+  }) async {
+    try {
+      final queryParams = {
+        'search': query,
+        'sortBy': sortBy,
+        'order': order,
+      };
+
+      if (userId != null) {
+        queryParams['userId'] = userId.toString();
+      }
+
+      final uri = Uri.parse('$_baseUrl/forum/posts').replace(
+        queryParameters: queryParams,
+      );
+
+      debugPrint('Searching posts: $uri');
+
+      final response = await http
+          .get(uri, headers: _defaultHeaders)
+          .timeout(_timeout);
+
+      if (response.statusCode == 200) {
+        try {
+          final List<dynamic> jsonData = json.decode(response.body);
+          return jsonData
+              .map((postJson) {
+            try {
+              return ForumPost.fromJson(postJson as Map<String, dynamic>);
+            } catch (e) {
+              debugPrint('Error parsing search result: $e');
+              return null;
+            }
+          })
+              .where((post) => post != null)
+              .cast<ForumPost>()
+              .toList();
+        } catch (e) {
+          debugPrint('Error parsing search response: $e');
+          return [];
+        }
+      } else {
+        throw Exception('Failed to search posts. Status: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error in searchPosts: $e');
       throw Exception('Network error: $e');
     }
   }

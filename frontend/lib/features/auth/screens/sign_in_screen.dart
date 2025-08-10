@@ -1,8 +1,8 @@
+import 'package:PanenIn/features/auth/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../config/constants/colors.dart';
 import '../../../shared/widgets/buttom_navbar.dart';
-import '../providers/auth_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 

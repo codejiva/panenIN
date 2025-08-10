@@ -1,21 +1,21 @@
 // frontend/lib/config/routes/app_router.dart
 import 'package:PanenIn/features/auth/screens/profile_screen.dart';
+import 'package:PanenIn/features/auth/screens/sign_in_screen.dart';
+import 'package:PanenIn/features/auth/screens/sign_up_screen.dart';
+import 'package:PanenIn/features/auth/services/auth_service.dart';
 import 'package:PanenIn/features/chatbot/screens/chatroom_screen.dart';
 import 'package:PanenIn/features/chatbot/screens/welcome_screen.dart';
-import 'package:PanenIn/features/forum/screens/answer_screen.dart';
+import 'package:PanenIn/features/forum/screens/question_detail_screen.dart'; // Changed from answer_screen
 import 'package:PanenIn/features/forum/screens/forum_screen.dart';
 import 'package:PanenIn/features/forum/screens/question_form_screen.dart';
+import 'package:PanenIn/features/home/screens/home_screen.dart';
 import 'package:PanenIn/features/maps/screens/maps_screen.dart';
 import 'package:PanenIn/features/monitoring/screens/landdetail_screen.dart';
 import 'package:PanenIn/features/monitoring/screens/listland_screen.dart' hide FieldStatus, FieldData;
+import 'package:PanenIn/features/onboarding/screens/onboarding_screen.dart';
+import 'package:PanenIn/shared/widgets/buttom_navbar.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../features/auth/screens/sign_in_screen.dart';
-import '../../features/auth/screens/sign_up_screen.dart';
-import '../../features/onboarding/screens/onboarding_screen.dart';
-import '../../features/home/screens/home_screen.dart';
-import '../../shared/widgets/buttom_navbar.dart';
-import 'package:PanenIn/features/auth/providers/auth_provider.dart';
 
 class AppRouter {
   // Buat GlobalKey yang unik untuk setiap instance
@@ -41,16 +41,38 @@ class AppRouter {
         final publicRoutes = ['/', '/login', '/signup'];
         final isPublicRoute = publicRoutes.contains(location);
 
+        // Redirect logged in users away from public routes
         if (isLoggedIn && isPublicRoute) {
           return '/home';
         }
 
+        // Redirect non-logged in users to login (except public routes)
         if (!isLoggedIn && !isPublicRoute) {
           return '/login';
         }
 
         return null;
       },
+
+      // Add error handling
+      errorBuilder: (context, state) => Scaffold(
+        appBar: AppBar(title: const Text('Page Not Found')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Page not found: ${state.uri.path}'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => context.go('/home'),
+                child: const Text('Go Home'),
+              ),
+            ],
+          ),
+        ),
+      ),
 
       routes: [
         GoRoute(
@@ -75,6 +97,48 @@ class AppRouter {
           path: '/profile',
           name: 'profile',
           builder: (context, state) => const ProfileScreen(),
+        ),
+
+        GoRoute(
+          path: '/post/:postId', // Changed from 'answer' to 'post' for clarity
+          name: 'post_detail', // Changed name to be more descriptive
+          builder: (context, state) {
+            final postIdString = state.pathParameters['postId'];
+
+            // Validate postId
+            if (postIdString == null || postIdString.isEmpty) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                context.go('/forum');
+              });
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            // Additional validation for numeric postId
+            final postId = int.tryParse(postIdString);
+            if (postId == null || postId <= 0) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                context.go('/forum');
+              });
+              return const Scaffold(
+                body: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error, size: 48, color: Colors.red),
+                      SizedBox(height: 16),
+                      Text('Invalid post ID'),
+                      SizedBox(height: 16),
+                      Text('Redirecting to forum...'),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return ForumDetailScreen(postId: postIdString);
+          },
         ),
 
         ShellRoute(
@@ -124,7 +188,17 @@ class AppRouter {
                   path: 'detail/:landId',
                   name: 'landdetail',
                   builder: (context, state) {
-                    final landId = state.pathParameters['landId'] ?? '';
+                    final landId = state.pathParameters['landId'];
+                    if (landId == null || landId.isEmpty) {
+                      // Redirect to monitoring if landId is invalid
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        context.go('/monitoring');
+                      });
+                      return const Scaffold(
+                        body: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+
                     final landName = state.uri.queryParameters['name'] ?? 'Unknown Land';
                     final statusStr = state.uri.queryParameters['status'] ?? 'healthy';
 
@@ -152,30 +226,8 @@ class AppRouter {
               ),
               routes: [
                 GoRoute(
-                  path: 'answer/:postId', // Add postId as path parameter
-                  name: 'answer',
-                  builder: (context, state) {
-                    final postIdString = state.pathParameters['postId'];
-                    final postId = int.tryParse(postIdString ?? '');
-
-                    if (postId == null) {
-                      // Handle invalid postId - redirect to forum
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        context.goNamed('forum');
-                      });
-                      return const Scaffold(
-                        body: Center(
-                          child: CircularProgressIndicator(),
-                        ),
-                      );
-                    }
-
-                    return AnswerScreen(postId: postId);
-                  },
-                ),
-                GoRoute(
-                  path: 'questionform',
-                  name: 'ask',
+                  path: 'ask', // Simplified path
+                  name: 'ask_question', // More descriptive name
                   builder: (context, state) => const QuestionFormScreen(),
                 ),
               ],
@@ -219,16 +271,26 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).uri.path;
 
-    // Find the best matching route
-    _currentIndex = _routes.indexWhere((route) => location.startsWith(route));
-    if (_currentIndex == -1) _currentIndex = 0;
+    // Find the best matching route with better logic
+    int newIndex = 0;
+    for (int i = 0; i < _routes.length; i++) {
+      if (location.startsWith(_routes[i])) {
+        newIndex = i;
+        break;
+      }
+    }
+
+    // Only update if different to avoid unnecessary rebuilds
+    if (_currentIndex != newIndex) {
+      _currentIndex = newIndex;
+    }
 
     return Scaffold(
       body: widget.child,
       bottomNavigationBar: BottomNavBar(
         currentIndex: _currentIndex,
         onTap: (index) {
-          if (_currentIndex != index) {
+          if (_currentIndex != index && index < _routes.length) {
             context.go(_routes[index]);
           }
         },

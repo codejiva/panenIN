@@ -1,8 +1,8 @@
 // frontend/lib/main.dart
+import 'package:PanenIn/features/auth/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
-import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/screens/auth_check_screen.dart';
 import 'config/routes/app_router.dart';
 

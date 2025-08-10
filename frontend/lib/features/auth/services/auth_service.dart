@@ -90,30 +90,6 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Verify if stored token is still valid
-  // Future<void> _verifyToken() async {
-  //   if (_token == null) return;
-  //
-  //   try {
-  //     final response = await http.get(
-  //       Uri.parse('https://panen-in-teal.vercel.app/api/auth/verify'),
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //         'Authorization': 'Bearer $_token',
-  //       },
-  //     );
-  //
-  //     if (response.statusCode != 200) {
-  //       // Token tidak valid, clear auth data
-  //       await _clearAuthData();
-  //     }
-  //   } catch (e) {
-  //     print('Error verifying token: $e');
-  //     await _clearAuthData();
-  //   }
-  // }
-
-  // Save auth data to SharedPreferences
   Future<void> _saveAuthData(Map<String, dynamic> responseData) async {
     try {
       final prefs = await SharedPreferences.getInstance();
