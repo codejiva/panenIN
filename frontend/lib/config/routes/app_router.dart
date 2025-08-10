@@ -152,9 +152,26 @@ class AppRouter {
               ),
               routes: [
                 GoRoute(
-                  path: 'answer',
+                  path: 'answer/:postId', // Add postId as path parameter
                   name: 'answer',
-                  builder: (context, state) => const AnswerScreen(),
+                  builder: (context, state) {
+                    final postIdString = state.pathParameters['postId'];
+                    final postId = int.tryParse(postIdString ?? '');
+
+                    if (postId == null) {
+                      // Handle invalid postId - redirect to forum
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        context.goNamed('forum');
+                      });
+                      return const Scaffold(
+                        body: Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    }
+
+                    return AnswerScreen(postId: postId);
+                  },
                 ),
                 GoRoute(
                   path: 'questionform',
