@@ -147,7 +147,7 @@ exports.createReply = async (req, res) => {
   }
 };
 
-// --- PERBAIKAN BUG DI SINI ---
+// --- GUE BENERIN BUG BUAT LIKE DI SINI ---
 // Like atau Unlike sebuah post atau reply
 exports.toggleLike = async (req, res) => {
   const { postId, replyId } = req.params;
