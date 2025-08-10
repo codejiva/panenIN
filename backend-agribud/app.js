@@ -14,6 +14,7 @@ const authRoutes = require('./routes/authRoute');
 const chatRoute = require('./routes/chatRoute');
 const dashboardRoutes = require('./routes/dashboardRoute');
 const forumRoute = require('./routes/forumRoute');
+const notificationRoute = require('./routes/notificationRoute');
 
 
 // --- Import Services ---
@@ -39,6 +40,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoute);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/forum', forumRoute);
+app.use('/api/notifications', notificationRoute);
 
 // --- Logika Socket.IO untuk Dashboard Real-time ---
 io.on('connection', (socket) => {

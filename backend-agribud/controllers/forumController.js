@@ -140,6 +140,17 @@ exports.createReply = async (req, res) => {
   try {
     const sql = 'INSERT INTO replies (post_id, user_id, content, parent_reply_id) VALUES (?, ?, ?, ?)';
     await pool.query(sql, [postId, userId, content, parentReplyId]);
+
+    // --- BUAT NOTIFIKASI ---
+    // Cari tahu siapa pemilik post asli
+    const [posts] = await pool.query('SELECT user_id, title FROM posts WHERE id = ?', [postId]);
+    if (posts.length > 0) {
+        const postOwnerId = posts[0].user_id;
+        const [sender] = await pool.query('SELECT username FROM users WHERE id = ?', [userId]);
+        await createNotification(postOwnerId, userId, 'NEW_REPLY', { id: postId, title: posts[0].title }, sender[0].username);
+    }
+    // TODO: Tambahkan notif untuk parent reply jika ada
+
     res.status(201).json({ message: 'Reply added successfully.' });
   } catch (error) {
     console.error("Error creating reply:", error);
@@ -153,30 +164,34 @@ exports.toggleLike = async (req, res) => {
   const { postId, replyId } = req.params;
   const { userId } = req.body;
 
-  if (!userId) {
-    return res.status(400).json({ message: 'userId is required.' });
-  }
+  if (!userId) return res.status(400).json({ message: 'userId is required.' });
 
-  // Tentukan target like (post atau reply)
   const isPostLike = !!postId;
   const targetId = postId || replyId;
   const targetColumn = isPostLike ? 'post_id' : 'reply_id';
-  const otherColumn = isPostLike ? 'reply_id' : 'post_id';
 
   try {
-    // Cek apakah user sudah pernah like item ini
     const checkSql = `SELECT id FROM likes WHERE user_id = ? AND ${targetColumn} = ?`;
     const [existingLikes] = await pool.query(checkSql, [userId, targetId]);
 
     if (existingLikes.length > 0) {
-      // Jika sudah ada, hapus (unlike)
       const deleteSql = 'DELETE FROM likes WHERE id = ?';
       await pool.query(deleteSql, [existingLikes[0].id]);
       res.status(200).json({ message: 'Unliked successfully.' });
     } else {
-      // Jika belum ada, tambahkan (like)
       const insertSql = `INSERT INTO likes (user_id, ${targetColumn}) VALUES (?, ?)`;
       await pool.query(insertSql, [userId, targetId]);
+
+      // --- BUAT NOTIFIKASI ---
+      const [sender] = await pool.query('SELECT username FROM users WHERE id = ?', [userId]);
+      if (isPostLike) {
+          const [posts] = await pool.query('SELECT user_id, title FROM posts WHERE id = ?', [targetId]);
+          await createNotification(posts[0].user_id, userId, 'LIKE_POST', { id: targetId, title: posts[0].title }, sender[0].username);
+      } else {
+          const [replies] = await pool.query('SELECT user_id, content, post_id FROM replies WHERE id = ?', [targetId]);
+          await createNotification(replies[0].user_id, userId, 'LIKE_REPLY', { postId: replies[0].post_id, content: replies[0].content }, sender[0].username);
+      }
+
       res.status(201).json({ message: 'Liked successfully.' });
     }
   } catch (error) {
@@ -188,6 +203,7 @@ exports.toggleLike = async (req, res) => {
 // Approve sebuah reply
 exports.approveReply = async (req, res) => {
   const { replyId } = req.params;
+  const { approverId } = req.body; // Kita butuh ID si advisor
 
   try {
     const sql = 'UPDATE replies SET is_expert_approved = TRUE WHERE id = ?';
@@ -196,6 +212,11 @@ exports.approveReply = async (req, res) => {
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: 'Reply not found.' });
     }
+
+    // --- BUAT NOTIFIKASI ---
+    const [replies] = await pool.query('SELECT r.user_id, p.title, p.id as postId FROM replies r JOIN posts p ON r.post_id = p.id WHERE r.id = ?', [replyId]);
+    await createNotification(replies[0].user_id, approverId, 'REPLY_APPROVED', { postId: replies[0].postId, title: replies[0].title }, 'Seorang Advisor');
+
     res.status(200).json({ message: 'Reply approved successfully.' });
   } catch (error) {
     console.error("Error approving reply:", error);

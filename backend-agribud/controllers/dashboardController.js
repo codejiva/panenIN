@@ -1,5 +1,6 @@
 const pool = require('../config/db');
 const Groq = require('groq-sdk'); // 1. Import library Groq
+const { createNotification } = require('../services/notificationService');
 
 // 2. Inisialisasi Groq dengan API key baru
 const groq = new Groq({
@@ -61,7 +62,7 @@ exports.generateDailySummary = async (req, res) => {
     
     const analysis = JSON.parse(responseContent);
 
-    // Simpan hasilnya ke database (logika ini tidak berubah)
+    // Simpan hasilnya ke database
     const today = new Date().toISOString().slice(0, 10);
     const sql = `
       INSERT INTO daily_summaries (summary_date, avg_temperature, avg_humidity, avg_ph, avg_light_intensity, plant_status, diagnosis, recommendation)
@@ -72,6 +73,13 @@ exports.generateDailySummary = async (req, res) => {
       diagnosis = VALUES(diagnosis), recommendation = VALUES(recommendation);
     `;
     
+    // --- BUAT NOTIFIKASI UNTUK SEMUA USER ---
+    const [users] = await pool.query('SELECT id FROM users');
+    for (const user of users) {
+        await createNotification(user.id, null, 'DAILY_SUMMARY', {}, null);
+    }
+    console.log(`Sent daily summary notification to ${users.length} users.`);
+
     await pool.query(sql, [
       today, avgData.temperature, avgData.humidity, avgData.ph,
       avgData.light_intensity, analysis.plant_status, analysis.diagnosis, analysis.recommendation
