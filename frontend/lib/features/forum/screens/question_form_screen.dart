@@ -21,7 +21,6 @@ class _QuestionFormScreenState extends State<QuestionFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
-  final TextEditingController _topicController = TextEditingController(text: 'Agriculture');
   final ForumService _forumService = ForumService();
 
   File? _image;
@@ -206,7 +205,6 @@ class _QuestionFormScreenState extends State<QuestionFormScreen> {
   void dispose() {
     _titleController.dispose();
     _contentController.dispose();
-    _topicController.dispose();
     super.dispose();
   }
 
@@ -317,8 +315,6 @@ class _QuestionFormScreenState extends State<QuestionFormScreen> {
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: 20),
           children: [
-            _buildTopicSection(),
-            const SizedBox(height: 20),
             _buildTitleSection(),
             const SizedBox(height: 20),
             _buildQuestionSection(),

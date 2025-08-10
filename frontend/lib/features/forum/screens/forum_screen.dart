@@ -117,6 +117,8 @@ class _ForumScreenState extends State<ForumScreen> {
             authProvider.userData?['userId'];
       }
 
+      debugPrint('Loading forum posts with userId: $userId');
+
       final posts = await _forumService.getForumPosts(userId: userId);
 
       if (mounted) {
@@ -129,6 +131,8 @@ class _ForumScreenState extends State<ForumScreen> {
         });
       }
     } catch (e) {
+      debugPrint('Error loading posts: $e');
+
       if (mounted && !silent) {
         setState(() {
           // Handle different error types
@@ -142,9 +146,6 @@ class _ForumScreenState extends State<ForumScreen> {
           isLoading = false;
         });
       }
-
-      // Log the detailed error for debugging
-      debugPrint('Error loading posts: $e');
     }
   }
 
@@ -191,12 +192,13 @@ class _ForumScreenState extends State<ForumScreen> {
           authProvider.userData?['user_id'] ??
           authProvider.userData?['userId'];
 
-      await _forumService.toggleLike(
-        postId: post.id,
-        userId: userId,
-      );
+      debugPrint('Liking post ${post.id} by user $userId');
 
-      // Update the post in the list immediately for better UX
+      // Store original values for rollback
+      final originalIsLiked = post.isLikedByUser;
+      final originalLikeCount = post.likeCount;
+
+      // Update the post in the list immediately for better UX (optimistic update)
       final postIndex = forumPosts.indexWhere((p) => p.id == post.id);
       if (postIndex != -1) {
         setState(() {
@@ -209,14 +211,40 @@ class _ForumScreenState extends State<ForumScreen> {
         });
       }
 
+      // Make API call
+      final result = await _forumService.toggleLike(
+        postId: post.id,
+        userId: userId,
+      );
+
+      debugPrint('Like toggle result: $result');
+
+      // ✅ Refresh data dari server untuk memastikan sinkronisasi
+      // Tapi hanya untuk post yang di-like agar tidak mengganggu scroll position
+      await _loadForumPosts(silent: true);
+
       // Show feedback
       _showSuccessSnackBar(
-        post.isLikedByUser ? 'Post unliked' : 'Post liked!',
+        originalIsLiked ? 'Post unliked' : 'Post liked!',
       );
 
     } catch (e) {
-      _showErrorSnackBar('Failed to ${post.isLikedByUser ? "unlike" : "like"} post');
       debugPrint('Error toggling like: $e');
+
+      // Revert optimistic update on error
+      final postIndex = forumPosts.indexWhere((p) => p.id == post.id);
+      if (postIndex != -1 && mounted) {
+        setState(() {
+          forumPosts[postIndex] = forumPosts[postIndex].copyWith(
+            isLikedByUser: !forumPosts[postIndex].isLikedByUser,
+            likeCount: forumPosts[postIndex].isLikedByUser ?
+            forumPosts[postIndex].likeCount - 1 :
+            forumPosts[postIndex].likeCount + 1,
+          );
+        });
+      }
+
+      _showErrorSnackBar('Failed to ${post.isLikedByUser ? "unlike" : "like"} post');
     } finally {
       setState(() {
         likingPosts.remove(post.id);
@@ -277,8 +305,8 @@ class _ForumScreenState extends State<ForumScreen> {
         ),
       ),
       // Add floating action button for auto-refresh toggle
-      floatingActionButton: _buildAutoRefreshFAB(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      // floatingActionButton: _buildAutoRefreshFAB(),
+      // floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 

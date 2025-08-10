@@ -70,7 +70,8 @@ class ForumPost {
       hasAdvisorResponse: json['has_advisor_response'] ??
           json['has_adviser_response'] ??
           _checkHasAdvisorResponse(repliesList),
-      isLikedByUser: json['is_liked_by_user'] ?? false,
+      // ✅ Ubah dari 'is_liked_by_user' ke 'is_liked' sesuai backend
+      isLikedByUser: (json['is_liked'] == 1 || json['is_liked'] == true) ? true : false,
       replies: repliesList,
       userId: json['user_id'] ?? json['author_id'] ?? 0,
       roleName: json['role_name'] ?? 'user',
@@ -99,7 +100,7 @@ class ForumPost {
       'comment_count': commentCount,
       'like_count': likeCount,
       'has_advisor_response': hasAdvisorResponse,
-      'is_liked_by_user': isLikedByUser,
+      'is_liked': isLikedByUser ? 1 : 0, // ✅ Sesuaikan dengan format backend
       'user_id': userId,
       'role_name': roleName,
       if (replies != null)
@@ -195,7 +196,8 @@ class Reply {
       username: json['username'] ?? 'Anonymous User',
       roleName: json['role_name'] ?? 'user',
       likeCount: json['like_count'] ?? 0,
-      isLikedByUser: json['is_liked_by_user'] ?? false,
+      // ✅ Ubah dari 'is_liked_by_user' ke 'is_liked' sesuai backend
+      isLikedByUser: (json['is_liked'] == 1 || json['is_liked'] == true) ? true : false,
       isExpertApproved: json['is_expert_approved'] == 1 || json['is_expert_approved'] == true,
       isOriginalPoster: json['is_op'] == 1 || json['is_original_poster'] == true,
       parentReplyId: json['parent_reply_id'],
@@ -212,7 +214,7 @@ class Reply {
       'username': username,
       'role_name': roleName,
       'like_count': likeCount,
-      'is_liked_by_user': isLikedByUser,
+      'is_liked': isLikedByUser ? 1 : 0, // ✅ Sesuaikan dengan format backend
       'is_expert_approved': isExpertApproved,
       'is_op': isOriginalPoster ? 1 : 0,
       'parent_reply_id': parentReplyId,

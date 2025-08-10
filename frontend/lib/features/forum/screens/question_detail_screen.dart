@@ -154,6 +154,17 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
     // Prevent multiple simultaneous like requests
     if (likingPosts.contains(targetId)) return;
 
+    // Store original state for rollback BEFORE any changes
+    final originalPostLiked = forumPost?.isLikedByUser ?? false;
+    final originalPostLikeCount = forumPost?.likeCount ?? 0;
+    bool originalReplyLiked = false;
+    int originalReplyLikeCount = 0;
+
+    if (reply != null) {
+      originalReplyLiked = reply.isLikedByUser;
+      originalReplyLikeCount = reply.likeCount;
+    }
+
     setState(() {
       likingPosts.add(targetId);
     });
@@ -163,11 +174,7 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
           authProvider.userData?['user_id'] ??
           authProvider.userData?['userId'];
 
-      await _forumService.toggleLike(
-        postId: reply == null ? int.parse(widget.postId) : null,
-        replyId: reply?.id,
-        userId: userId,
-      );
+      debugPrint('Toggling like for ${reply == null ? 'post' : 'reply'} $targetId by user $userId');
 
       // Optimistic update - Update UI immediately
       if (mounted) {
@@ -195,32 +202,43 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
         });
       }
 
+      // Make API call
+      final result = await _forumService.toggleLike(
+        postId: reply == null ? int.parse(widget.postId) : null,
+        replyId: reply?.id,
+        userId: userId,
+      );
+
+      debugPrint('Like toggle result: $result');
+
+      // ✅ Refresh data dari server untuk memastikan sinkronisasi
+      // Tapi tanpa loading indicator agar tidak mengganggu UX
+      await _loadPostDetails();
+
       // Show feedback
       _showSuccessSnackBar(
         reply == null
-            ? (forumPost!.isLikedByUser ? 'Post liked!' : 'Post unliked')
-            : 'Reply ${replies.firstWhere((r) => r.id == reply.id).isLikedByUser ? "liked!" : "unliked"}',
+            ? (originalPostLiked ? 'Post unliked' : 'Post liked!')
+            : (originalReplyLiked ? 'Reply unliked' : 'Reply liked!'),
       );
 
     } catch (e) {
+      debugPrint('Error toggling like: $e');
+
       // Revert optimistic update on error
       if (mounted) {
         setState(() {
           if (reply == null && forumPost != null) {
             forumPost = forumPost!.copyWith(
-              isLikedByUser: !forumPost!.isLikedByUser,
-              likeCount: forumPost!.isLikedByUser
-                  ? forumPost!.likeCount - 1
-                  : forumPost!.likeCount + 1,
+              isLikedByUser: originalPostLiked,
+              likeCount: originalPostLikeCount,
             );
           } else if (reply != null) {
             final replyIndex = replies.indexWhere((r) => r.id == reply.id);
             if (replyIndex != -1) {
               replies[replyIndex] = replies[replyIndex].copyWith(
-                isLikedByUser: !replies[replyIndex].isLikedByUser,
-                likeCount: replies[replyIndex].isLikedByUser
-                    ? replies[replyIndex].likeCount - 1
-                    : replies[replyIndex].likeCount + 1,
+                isLikedByUser: originalReplyLiked,
+                likeCount: originalReplyLikeCount,
               );
             }
           }

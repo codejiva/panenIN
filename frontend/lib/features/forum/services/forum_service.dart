@@ -249,12 +249,11 @@ class ForumService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = json.decode(response.body);
 
-        // Return like status and count if available
+        // ✅ Backend hanya mengembalikan message, jadi kita return success saja
+        // Frontend akan menggunakan optimistic update untuk UI
         return {
           'success': true,
           'message': responseData['message'] ?? 'Like toggled successfully',
-          'isLiked': responseData['isLiked'],
-          'likeCount': responseData['likeCount'],
         };
       } else {
         final errorData = json.decode(response.body);

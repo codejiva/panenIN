@@ -1,11 +1,12 @@
-// frontend/lib/config/routes/app_router.dart
+// lib/config/routes/app_router.dart
 import 'package:PanenIn/features/auth/screens/profile_screen.dart';
 import 'package:PanenIn/features/auth/screens/sign_in_screen.dart';
 import 'package:PanenIn/features/auth/screens/sign_up_screen.dart';
 import 'package:PanenIn/features/auth/services/auth_service.dart';
+import 'package:PanenIn/features/chatbot/screens/chatroom_list_screen.dart';
 import 'package:PanenIn/features/chatbot/screens/chatroom_screen.dart';
 import 'package:PanenIn/features/chatbot/screens/welcome_screen.dart';
-import 'package:PanenIn/features/forum/screens/question_detail_screen.dart'; // Changed from answer_screen
+import 'package:PanenIn/features/forum/screens/question_detail_screen.dart';
 import 'package:PanenIn/features/forum/screens/forum_screen.dart';
 import 'package:PanenIn/features/forum/screens/question_form_screen.dart';
 import 'package:PanenIn/features/home/screens/home_screen.dart';
@@ -18,21 +19,18 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 class AppRouter {
-  // Buat GlobalKey yang unik untuk setiap instance
   static GoRouter? _router;
 
   static GoRouter createRouter(AuthProvider authProvider) {
-    // Dispose router lama jika ada
     _router?.dispose();
 
-    // Buat GlobalKey baru setiap kali
     final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
     final shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
 
     _router = GoRouter(
       navigatorKey: rootNavigatorKey,
       initialLocation: '/',
-      debugLogDiagnostics: false, // Nonaktifkan untuk mengurangi log
+      debugLogDiagnostics: false,
 
       redirect: (context, state) {
         final isLoggedIn = authProvider.isLoggedIn;
@@ -41,12 +39,10 @@ class AppRouter {
         final publicRoutes = ['/', '/login', '/signup'];
         final isPublicRoute = publicRoutes.contains(location);
 
-        // Redirect logged in users away from public routes
         if (isLoggedIn && isPublicRoute) {
           return '/home';
         }
 
-        // Redirect non-logged in users to login (except public routes)
         if (!isLoggedIn && !isPublicRoute) {
           return '/login';
         }
@@ -54,7 +50,6 @@ class AppRouter {
         return null;
       },
 
-      // Add error handling
       errorBuilder: (context, state) => Scaffold(
         appBar: AppBar(title: const Text('Page Not Found')),
         body: Center(
@@ -100,12 +95,11 @@ class AppRouter {
         ),
 
         GoRoute(
-          path: '/post/:postId', // Changed from 'answer' to 'post' for clarity
-          name: 'post_detail', // Changed name to be more descriptive
+          path: '/post/:postId',
+          name: 'post_detail',
           builder: (context, state) {
             final postIdString = state.pathParameters['postId'];
 
-            // Validate postId
             if (postIdString == null || postIdString.isEmpty) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 context.go('/forum');
@@ -115,7 +109,6 @@ class AppRouter {
               );
             }
 
-            // Additional validation for numeric postId
             final postId = int.tryParse(postIdString);
             if (postId == null || postId <= 0) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -154,6 +147,8 @@ class AppRouter {
                 child: HomeScreen(),
               ),
             ),
+
+            // Enhanced chatbot routes
             GoRoute(
               path: '/chatbot',
               name: 'chatbot',
@@ -162,14 +157,36 @@ class AppRouter {
               ),
               routes: [
                 GoRoute(
+                    path: 'list',
+                    name: 'chatroom_list',
+                    builder: (context, state) => const ChatroomListScreen(),
+                    routes: [
+                      GoRoute(
+                        path: 'chat',
+                        name: 'chatroom',
+                        builder: (context, state) {
+                          final conversationId = state.uri.queryParameters['conversationId'];
+                          return PanenAIChatScreen(
+                            conversationId: conversationId,
+                          );
+                        },
+                      )
+                    ]
+                ),
+                // Direct chat route from welcome screen
+                GoRoute(
                   path: 'chat',
-                  name: 'chatroom',
+                  name: 'direct_chat',
                   builder: (context, state) {
-                    return const PanenAIChatScreen();
+                    final conversationId = state.uri.queryParameters['conversationId'];
+                    return PanenAIChatScreen(
+                      conversationId: conversationId,
+                    );
                   },
                 ),
               ],
             ),
+
             GoRoute(
               path: '/maps',
               name: 'maps',
@@ -177,6 +194,7 @@ class AppRouter {
                 child: MapScreen(),
               ),
             ),
+
             GoRoute(
               path: '/monitoring',
               name: 'monitoring',
@@ -190,7 +208,6 @@ class AppRouter {
                   builder: (context, state) {
                     final landId = state.pathParameters['landId'];
                     if (landId == null || landId.isEmpty) {
-                      // Redirect to monitoring if landId is invalid
                       WidgetsBinding.instance.addPostFrameCallback((_) {
                         context.go('/monitoring');
                       });
@@ -218,6 +235,7 @@ class AppRouter {
                 ),
               ],
             ),
+
             GoRoute(
               path: '/forum',
               name: 'forum',
@@ -226,8 +244,8 @@ class AppRouter {
               ),
               routes: [
                 GoRoute(
-                  path: 'ask', // Simplified path
-                  name: 'ask_question', // More descriptive name
+                  path: 'ask',
+                  name: 'ask_question',
                   builder: (context, state) => const QuestionFormScreen(),
                 ),
               ],
@@ -240,7 +258,6 @@ class AppRouter {
     return _router!;
   }
 
-  // Method untuk cleanup
   static void dispose() {
     _router?.dispose();
     _router = null;
