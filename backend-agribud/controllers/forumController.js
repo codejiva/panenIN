@@ -83,7 +83,6 @@ exports.getPostById = async (req, res) => {
     }
     const post = posts[0];
 
-    // --- PERBAIKAN BUG DI SINI ---
     let repliesQuery = `
       SELECT 
         rep.id, rep.content, rep.created_at, rep.parent_reply_id, rep.is_expert_approved,
@@ -97,7 +96,7 @@ exports.getPostById = async (req, res) => {
     `;
 
     if (filter === 'approved') {
-      repliesQuery += ' AND rep.is_expert_approved = 1'; // Menggunakan 1 untuk TRUE
+      repliesQuery += ' AND rep.is_expert_approved = 1';
     }
 
     const orderByClause = sortBy === 'like_count' ? 'like_count' : 'rep.created_at';
@@ -148,6 +147,7 @@ exports.createReply = async (req, res) => {
   }
 };
 
+// --- PERBAIKAN BUG DI SINI ---
 // Like atau Unlike sebuah post atau reply
 exports.toggleLike = async (req, res) => {
   const { postId, replyId } = req.params;
@@ -157,20 +157,26 @@ exports.toggleLike = async (req, res) => {
     return res.status(400).json({ message: 'userId is required.' });
   }
 
-  const targetPostId = postId || null;
-  const targetReplyId = replyId || null;
+  // Tentukan target like (post atau reply)
+  const isPostLike = !!postId;
+  const targetId = postId || replyId;
+  const targetColumn = isPostLike ? 'post_id' : 'reply_id';
+  const otherColumn = isPostLike ? 'reply_id' : 'post_id';
 
   try {
-    const checkSql = 'SELECT id FROM likes WHERE user_id = ? AND (post_id = ? OR reply_id = ?)';
-    const [existingLikes] = await pool.query(checkSql, [userId, targetPostId, targetReplyId]);
+    // Cek apakah user sudah pernah like item ini
+    const checkSql = `SELECT id FROM likes WHERE user_id = ? AND ${targetColumn} = ?`;
+    const [existingLikes] = await pool.query(checkSql, [userId, targetId]);
 
     if (existingLikes.length > 0) {
+      // Jika sudah ada, hapus (unlike)
       const deleteSql = 'DELETE FROM likes WHERE id = ?';
       await pool.query(deleteSql, [existingLikes[0].id]);
       res.status(200).json({ message: 'Unliked successfully.' });
     } else {
-      const insertSql = 'INSERT INTO likes (user_id, post_id, reply_id) VALUES (?, ?, ?)';
-      await pool.query(insertSql, [userId, targetPostId, targetReplyId]);
+      // Jika belum ada, tambahkan (like)
+      const insertSql = `INSERT INTO likes (user_id, ${targetColumn}) VALUES (?, ?)`;
+      await pool.query(insertSql, [userId, targetId]);
       res.status(201).json({ message: 'Liked successfully.' });
     }
   } catch (error) {
