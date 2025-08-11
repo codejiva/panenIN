@@ -1,4 +1,5 @@
 // lib/features/chatbot/screens/enhanced_chatroom_list_screen.dart
+import 'package:PanenIn/shared/widgets/appbar.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:PanenIn/features/chatbot/models/chatroom_item_model.dart';
@@ -70,7 +71,7 @@ class _ChatroomListScreenState extends State<ChatroomListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: _buildAppBar(),
+      appBar: SharedAppBar(),
       body: RefreshIndicator(
         onRefresh: _refreshConversations,
         color: const Color(0xFF48BB78),
@@ -85,37 +86,6 @@ class _ChatroomListScreenState extends State<ChatroomListScreen> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      backgroundColor: Colors.white,
-      elevation: 1,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.black),
-        onPressed: () => context.go('/chatbot'),
-      ),
-      title: const Text(
-        'Chats',
-        style: TextStyle(
-          color: Colors.black,
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.refresh, color: Colors.black),
-          onPressed: _refreshConversations,
-        ),
-        IconButton(
-          icon: const Icon(Icons.more_vert, color: Colors.black),
-          onPressed: () {
-            _showOptionsMenu(context);
-          },
-        ),
-      ],
-    );
-  }
-
   Widget _buildSearchBar() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -127,7 +97,7 @@ class _ChatroomListScreenState extends State<ChatroomListScreen> {
           });
         },
         decoration: InputDecoration(
-          hintText: 'Search chats...',
+          hintText: 'Search AI conversations...',
           prefixIcon: const Icon(Icons.search, color: Colors.grey),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
@@ -186,7 +156,7 @@ class _ChatroomListScreenState extends State<ChatroomListScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Error loading chats',
+            'Error loading conversations',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w500,
@@ -232,14 +202,14 @@ class _ChatroomListScreenState extends State<ChatroomListScreen> {
               shape: BoxShape.circle,
             ),
             child: const Icon(
-              Icons.chat_bubble_outline,
+              Icons.smart_toy,
               size: 60,
               color: Color(0xFF48BB78),
             ),
           ),
           const SizedBox(height: 24),
           Text(
-            _searchQuery.isNotEmpty ? 'No chats found' : 'No chats yet',
+            _searchQuery.isNotEmpty ? 'No conversations found' : 'No AI conversations yet',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
@@ -252,7 +222,7 @@ class _ChatroomListScreenState extends State<ChatroomListScreen> {
             child: Text(
               _searchQuery.isNotEmpty
                   ? 'Try searching with different keywords'
-                  : 'Start a new conversation with Panen AI to get instant help with farming questions',
+                  : 'Start your first conversation with Panen AI to get instant help with farming questions and plant analysis',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[500],
@@ -270,7 +240,7 @@ class _ChatroomListScreenState extends State<ChatroomListScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
               icon: const Icon(Icons.smart_toy, size: 20),
-              label: const Text('Start Chat with AI'),
+              label: const Text('Start AI Chat'),
             ),
           ],
         ],
@@ -328,15 +298,22 @@ class _ChatroomListScreenState extends State<ChatroomListScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              if (chatroom.isOnline)
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
+              // AI indicator
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF48BB78).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'AI',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
                     color: Color(0xFF48BB78),
-                    shape: BoxShape.circle,
                   ),
                 ),
+              ),
             ],
           ),
           subtitle: Padding(
@@ -344,7 +321,7 @@ class _ChatroomListScreenState extends State<ChatroomListScreen> {
             child: Text(
               chatroom.lastMessage.isNotEmpty
                   ? chatroom.lastMessage
-                  : 'No messages yet',
+                  : 'Start conversation with AI',
               style: TextStyle(
                 color: chatroom.unreadCount > 0 ? Colors.black87 : Colors.grey[600],
                 fontWeight: chatroom.unreadCount > 0 ? FontWeight.w500 : FontWeight.normal,
@@ -401,66 +378,51 @@ class _ChatroomListScreenState extends State<ChatroomListScreen> {
       children: [
         CircleAvatar(
           radius: 24,
-          backgroundColor: chatroom.avatarColor,
-          child: chatroom.isAI
-              ? const Icon(
+          backgroundColor: const Color(0xFF48BB78),
+          child: const Icon(
             Icons.smart_toy,
             color: Colors.white,
             size: 24,
-          )
-              : Text(
-            chatroom.title.substring(0, 1).toUpperCase(),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
+          ),
+        ),
+        // Online indicator for AI
+        Positioned(
+          bottom: 0,
+          right: 0,
+          child: Container(
+            width: 14,
+            height: 14,
+            decoration: BoxDecoration(
+              color: const Color(0xFF48BB78),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
             ),
           ),
         ),
-        if (chatroom.isOnline && chatroom.isAI)
-          Positioned(
-            bottom: 0,
-            right: 0,
-            child: Container(
-              width: 14,
-              height: 14,
-              decoration: BoxDecoration(
-                color: const Color(0xFF48BB78),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-              ),
-            ),
-          ),
       ],
     );
   }
 
   Widget _buildFloatingActionButton() {
-    return FloatingActionButton(
-      onPressed: () => _showNewChatOptions(context),
+    return FloatingActionButton.extended(
+      onPressed: () => _startNewAIChat(),
       backgroundColor: const Color(0xFF48BB78),
-      child: const Icon(
-        Icons.add,
-        color: Colors.white,
-      ),
+      foregroundColor: Colors.white,
+      icon: const Icon(Icons.smart_toy),
+      label: const Text('New AI Chat'),
     );
   }
 
   void _openChatroom(ChatroomItem chatroom) {
-    if (chatroom.isAI) {
-      // Navigate to AI chat with conversation ID
-      context.go('/chatbot/list/chat?conversationId=${chatroom.id}');
-    } else {
-      // Navigate to community chat (placeholder)
-      _showComingSoonDialog();
-    }
+    // All chats are AI chats now
+    context.go('/chat?conversationId=${chatroom.id}');
   }
 
   Future<bool?> _confirmDeleteChatroom(ChatroomItem chatroom) async {
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Chat'),
+        title: const Text('Delete Conversation'),
         content: Text('Are you sure you want to delete "${chatroom.title}"? This action cannot be undone.'),
         actions: [
           TextButton(
@@ -502,7 +464,7 @@ class _ChatroomListScreenState extends State<ChatroomListScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Chat deleted successfully'),
+            content: Text('Conversation deleted successfully'),
             backgroundColor: Color(0xFF48BB78),
           ),
         );
@@ -515,7 +477,7 @@ class _ChatroomListScreenState extends State<ChatroomListScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to delete chat: ${e.toString()}'),
+            content: Text('Failed to delete conversation: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -524,67 +486,7 @@ class _ChatroomListScreenState extends State<ChatroomListScreen> {
   }
 
   void _startNewAIChat() {
-    context.go('/chatbot/list/chat');
-  }
-
-  void _showNewChatOptions(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Start New Chat',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 20),
-            ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: Color(0xFF48BB78),
-                child: Icon(Icons.smart_toy, color: Colors.white),
-              ),
-              title: const Text('Chat with Panen AI'),
-              subtitle: const Text('Get instant help with farming questions'),
-              onTap: () {
-                Navigator.pop(context);
-                _startNewAIChat();
-              },
-            ),
-            ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: Color(0xFF3182CE),
-                child: Icon(Icons.group, color: Colors.white),
-              ),
-              title: const Text('Join Community Chat'),
-              subtitle: const Text('Connect with fellow farmers'),
-              onTap: () {
-                Navigator.pop(context);
-                _showComingSoonDialog();
-              },
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
+    context.go('/chat');
   }
 
   void _showOptionsMenu(BuildContext context) {
@@ -608,28 +510,21 @@ class _ChatroomListScreenState extends State<ChatroomListScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            ListTile(
-              leading: const Icon(Icons.archive),
-              title: const Text('Archived Chats'),
-              onTap: () {
-                Navigator.pop(context);
-                _showComingSoonDialog();
-              },
+            const Text(
+              'AI Chat Options',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
             ),
+            const SizedBox(height: 20),
             ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Chat Settings'),
+              leading: const Icon(Icons.help_outline, color: Color(0xFF48BB78)),
+              title: const Text('Help & Tips'),
+              subtitle: const Text('Learn how to chat with AI'),
               onTap: () {
                 Navigator.pop(context);
-                _showComingSoonDialog();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.help_outline),
-              title: const Text('Help & Support'),
-              onTap: () {
-                Navigator.pop(context);
-                _showComingSoonDialog();
+                _showHelpDialog();
               },
             ),
             const SizedBox(height: 10),
@@ -639,16 +534,46 @@ class _ChatroomListScreenState extends State<ChatroomListScreen> {
     );
   }
 
-  void _showComingSoonDialog() {
+  void _showHelpDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Coming Soon'),
-        content: const Text('This feature is currently under development and will be available soon!'),
+        title: const Row(
+          children: [
+            Icon(Icons.smart_toy, color: Color(0xFF48BB78)),
+            SizedBox(width: 8),
+            Text('AI Chat Tips'),
+          ],
+        ),
+        content: const SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '💬 Ask Questions',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              Text('Ask about plant diseases, farming techniques, or crop management.'),
+              SizedBox(height: 12),
+              Text(
+                '📸 Upload Photos',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              Text('Send photos of plants for AI analysis and diagnosis.'),
+              SizedBox(height: 12),
+              Text(
+                '🔄 Get Instant Help',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              Text('Receive immediate responses and expert farming advice.'),
+            ],
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+            child: const Text('Got it!'),
           ),
         ],
       ),

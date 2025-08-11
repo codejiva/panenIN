@@ -1,4 +1,4 @@
-import 'package:flutter/animation.dart';
+import 'dart:ui';
 
 class ChatroomItem {
   final String id;

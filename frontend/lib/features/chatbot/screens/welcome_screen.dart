@@ -241,7 +241,7 @@ class _WelcomeChatScreenState extends State<WelcomeChatScreen> {
 
   void _startNewChat() {
     // Navigator.push atau logic lainnya
-    context.goNamed('chatroom_list');
+    context.go('/chat');
   }
 }
 

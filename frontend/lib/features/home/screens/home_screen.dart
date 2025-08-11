@@ -195,7 +195,7 @@ class _HomeScreenState extends State<HomeScreen>
     return baseSize;
   }
 
-  // Sensor status methods (unchanged)
+  // Sensor status methods
   SensorStatus _getTemperatureStatus(double temperature) {
     if (temperature >= 35) return SensorStatus.bad;
     if (temperature >= 30) return SensorStatus.warning;
@@ -214,21 +214,14 @@ class _HomeScreenState extends State<HomeScreen>
     return SensorStatus.good;
   }
 
-  double _generateLightIntensity() {
-    final hour = DateTime.now().hour;
-    if (hour >= 6 && hour <= 18) {
-      return 65 + (15 * (1 - (hour - 12).abs() / 6));
-    }
-    return 15;
-  }
-
   SensorStatus _getLightIntensityStatus(double intensity) {
-    if (intensity < 30) return SensorStatus.bad;
-    if (intensity < 50) return SensorStatus.warning;
+    // Adjusted thresholds for the new scale (API returns values around 12668)
+    if (intensity < 5000) return SensorStatus.bad;
+    if (intensity < 10000) return SensorStatus.warning;
     return SensorStatus.good;
   }
 
-  // Description methods (unchanged)
+  // Description methods
   String _getTemperatureDescription(double temperature) {
     if (temperature >= 35) return 'Very high temperature';
     if (temperature >= 30) return 'High temperature';
@@ -254,9 +247,10 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   String _getLightIntensityDescription(double intensity) {
-    if (intensity >= 70) return 'Excellent light';
-    if (intensity >= 50) return 'Good light';
-    if (intensity >= 30) return 'Moderate light';
+    // Updated for the new scale
+    if (intensity >= 15000) return 'Excellent light';
+    if (intensity >= 10000) return 'Good light';
+    if (intensity >= 5000) return 'Moderate light';
     return 'Low light';
   }
 
@@ -289,10 +283,10 @@ class _HomeScreenState extends State<HomeScreen>
                   SizedBox(height: _isMobile(context) ? 20 : 24),
                   _buildMainDashboard(context),
                   SizedBox(height: _isMobile(context) ? 20 : 24),
-                  _buildMapSection(context),
-                  SizedBox(height: _isMobile(context) ? 20 : 24),
-                  _buildPlantHealthChart(context),
-                  const SizedBox(height: 20),
+                  // _buildMapSection(context),
+                  // SizedBox(height: _isMobile(context) ? 20 : 24),
+                  // _buildPlantHealthChart(context),
+                  // const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -338,16 +332,23 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  _dashboardData != null
-                      ? 'Last updated: ${_dashboardData!.timestamp.toString().substring(11, 19)}'
-                      : 'Monitor your crops with smart technology',
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w400,
-                    fontSize: _getResponsiveFontSize(context, 14),
-                    color: Colors.white.withOpacity(0.9),
+                // Text(
+                //   'Monitor your crops with smart technology',
+                //   style: GoogleFonts.inter(
+                //     fontWeight: FontWeight.w400,
+                //     fontSize: _getResponsiveFontSize(context, 14),
+                //     color: Colors.white.withOpacity(0.9),
+                //   ),
+                // ),
+                if (_dashboardData != null)
+                  Text(
+                    'Last updated: ${_dashboardData!.timestamp.toString().substring(11, 19)}',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w300,
+                      fontSize: _getResponsiveFontSize(context, 12),
+                      color: Colors.white.withOpacity(0.8),
+                    ),
                   ),
-                ),
               ],
             ),
           ),
@@ -551,7 +552,8 @@ class _HomeScreenState extends State<HomeScreen>
       );
     }
 
-    final lightIntensity = _generateLightIntensity();
+    // Use API light intensity instead of generated value
+    final lightIntensity = _dashboardData!.lightIntensity;
     final spacing = _isMobile(context) ? 8.0 : 12.0;
 
     return Column(
@@ -615,7 +617,7 @@ class _HomeScreenState extends State<HomeScreen>
                 context: context,
                 icon: Icons.wb_sunny_outlined,
                 title: 'Light Intensity',
-                value: '${lightIntensity.toStringAsFixed(0)}%',
+                value: '${(lightIntensity / 1000).toStringAsFixed(1)}k lux',
                 description: _getLightIntensityDescription(lightIntensity),
                 status: _getLightIntensityStatus(lightIntensity),
                 gradient: _getLightIntensityStatus(lightIntensity) == SensorStatus.good
@@ -849,446 +851,473 @@ class _HomeScreenState extends State<HomeScreen>
     // Optimized GoogleMap widget
     try {
       return GoogleMap(
-          onMapCreated: _onMapCreated,
-          initialCameraPosition: CameraPosition(
-            target: _center,
-            zoom: AppConstants.defaultMapZoom,
+        onMapCreated: _onMapCreated,
+        initialCameraPosition: CameraPosition(
+          target: _center,
+          zoom: AppConstants.defaultMapZoom,
+        ),
+        markers: {
+          Marker(
+            markerId: const MarkerId('farm_location'),
+            position: _center,
+            infoWindow: const InfoWindow(
+              title: 'Your Farm',
+              snippet: 'Smart Farming Location',
+            ),
           ),
-          markers: {
-            Marker(
-              markerId: const MarkerId('farm_location'),
-              position: _center,
-              infoWindow: const InfoWindow(
-                title: 'Your Farm',
-                snippet: 'Smart Farming Location',
+        },
+        // Performance optimizations
+        buildingsEnabled: false,
+        trafficEnabled: false,
+        myLocationButtonEnabled: false,
+        zoomControlsEnabled: false,
+        mapToolbarEnabled: false,
+        compassEnabled: false,
+        rotateGesturesEnabled: false,
+        tiltGesturesEnabled: false,
+        // Reduce texture memory usage
+        liteModeEnabled: _isMobile(context),
+      );
+    } catch (e) {
+      return Container(
+        color: Colors.green[50],
+        child: Center(
+          child: Padding(
+            padding: EdgeInsets.all(_isMobile(context) ? 16 : 24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.location_on, color: Colors.green, size: 48),
+                const SizedBox(height: 16),
+                Text(
+                  'Farm Location',
+                  style: GoogleFonts.montserrat(
+                    fontSize: _getResponsiveFontSize(context, 16),
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
+                ),
+                Text(
+                  'Jakarta, Indonesia',
+                  style: GoogleFonts.inter(
+                    fontSize: _getResponsiveFontSize(context, 12),
+                    color: Colors.green[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  Widget _buildPlantHealthChart(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(_isMobile(context) ? 16 : 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Plant Health Overview',
+            style: GoogleFonts.montserrat(
+              fontWeight: FontWeight.bold,
+              fontSize: _getResponsiveFontSize(context, 18),
+              color: Colors.black87,
+            ),
+          ),
+          SizedBox(height: _isMobile(context) ? 16 : 20),
+          _isMobile(context)
+              ? _buildMobileChart(context)
+              : _buildDesktopChart(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileChart(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(
+          height: 160,
+          child: PieChart(
+            PieChartData(
+              pieTouchData: PieTouchData(
+                touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                  setState(() {
+                    if (!event.isInterestedForInteractions ||
+                        pieTouchResponse == null ||
+                        pieTouchResponse.touchedSection == null) {
+                      touchedIndex = -1;
+                      return;
+                    }
+                    touchedIndex = pieTouchResponse
+                        .touchedSection!.touchedSectionIndex;
+                  });
+                },
+              ),
+              borderData: FlBorderData(show: false),
+              sectionsSpace: 2,
+              centerSpaceRadius: 30,
+              sections: showingSections(),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Column(
+          children: [
+            _buildModernLegendItem(
+              context: context,
+              color: const Color(0xFF4CAF50),
+              label: 'Healthy',
+              percentage: '55%',
+            ),
+            const SizedBox(height: 8),
+            _buildModernLegendItem(
+              context: context,
+              color: Colors.orange,
+              label: 'Warning',
+              percentage: '20%',
+            ),
+            const SizedBox(height: 8),
+            _buildModernLegendItem(
+              context: context,
+              color: Colors.red,
+              label: 'Critical',
+              percentage: '25%',
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDesktopChart(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          flex: 2,
+          child: SizedBox(
+            height: 180,
+            child: PieChart(
+              PieChartData(
+                pieTouchData: PieTouchData(
+                  touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                    setState(() {
+                      if (!event.isInterestedForInteractions ||
+                          pieTouchResponse == null ||
+                          pieTouchResponse.touchedSection == null) {
+                        touchedIndex = -1;
+                        return;
+                      }
+                      touchedIndex = pieTouchResponse
+                          .touchedSection!.touchedSectionIndex;
+                    });
+                  },
+                ),
+                borderData: FlBorderData(show: false),
+                sectionsSpace: 2,
+                centerSpaceRadius: 40,
+                sections: showingSections(),
               ),
             ),
-          },
-    // Performance optimizations
-    buildingsEnabled: false,
-    trafficEnabled: false,
-    myLocationButtonEnabled: false,
-    zoomControlsEnabled: false,
-    mapToolbarEnabled: false,
-    compassEnabled: false,
-    rotateGesturesEnabled: false,
-    tiltGesturesEnabled: false,
-    // Reduce texture memory usage
-    liteModeEnabled: _isMobile(context),
+          ),
+        ),
+        Expanded(
+          child: Column(
+            children: [
+              _buildModernLegendItem(
+                context: context,
+                color: const Color(0xFF4CAF50),
+                label: 'Healthy',
+                percentage: '55%',
+              ),
+              const SizedBox(height: 12),
+              _buildModernLegendItem(
+                context: context,
+                color: Colors.orange,
+                label: 'Warning',
+                percentage: '20%',
+              ),
+              const SizedBox(height: 12),
+              _buildModernLegendItem(
+                context: context,
+                color: Colors.red,
+                label: 'Critical',
+                percentage: '25%',
+              ),
+            ],
+          ),
+        ),
+      ],
     );
-    } catch (e) {
-    return Container(
-    color: Colors.green[50],
-    child: Center(
-    child: Padding(
-    padding: EdgeInsets.all(_isMobile(context) ? 16 : 24),
-    child: Column(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-    Icon(Icons.location_on, color: Colors.green, size: 48),
-    const SizedBox(height: 16),
-    Text(
-    'Farm Location',
-    style: GoogleFonts.montserrat(
-    fontSize: _getResponsiveFontSize(context, 16),
-    fontWeight: FontWeight.bold,
-    color: Colors.green,
-    ),
-    ),
-    Text(
-    'Jakarta, Indonesia',
-    style: GoogleFonts.inter(
-    fontSize: _getResponsiveFontSize(context, 12),
-    color: Colors.green[600],
-    ),
-    ),
-    ],
-    ),
-    ),
-    ),
-    );
-    }
-    }
+  }
 
-    Widget _buildPlantHealthChart(BuildContext context) {
-    return Container(
-    padding: EdgeInsets.all(_isMobile(context) ? 16 : 20),
-    decoration: BoxDecoration(
-    color: Colors.white,
-    borderRadius: BorderRadius.circular(16),
-    boxShadow: [
-    BoxShadow(
-    color: Colors.black.withOpacity(0.08),
-    blurRadius: 15,
-    offset: const Offset(0, 8),
-    ),
-    ],
-    ),
-    child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-    Text(
-    'Plant Health Overview',
-    style: GoogleFonts.montserrat(
-    fontWeight: FontWeight.bold,
-    fontSize: _getResponsiveFontSize(context, 18),
-    color: Colors.black87,
-    ),
-    ),
-    SizedBox(height: _isMobile(context) ? 16 : 20),
-    _isMobile(context)
-    ? _buildMobileChart(context)
-        : _buildDesktopChart(context),
-    ],
-    ),
-    );
-    }
-
-    Widget _buildMobileChart(BuildContext context) {
-    return Column(
-    children: [
-    SizedBox(
-    height: 160,
-    child: PieChart(
-    PieChartData(
-    pieTouchData: PieTouchData(
-    touchCallback: (FlTouchEvent event, pieTouchResponse) {
-    setState(() {
-    if (!event.isInterestedForInteractions ||
-    pieTouchResponse == null ||
-    pieTouchResponse.touchedSection == null) {
-    touchedIndex = -1;
-    return;
-    }
-    touchedIndex = pieTouchResponse
-        .touchedSection!.touchedSectionIndex;
-    });
-    },
-    ),
-    borderData: FlBorderData(show: false),
-    sectionsSpace: 2,
-    centerSpaceRadius: 30,
-    sections: showingSections(),
-    ),
-    ),
-    ),
-    const SizedBox(height: 16),
-    Column(
-    children: [
-    _buildModernLegendItem(
-    context: context,
-    color: const Color(0xFF4CAF50),
-    label: 'Healthy',
-    percentage: '55%',
-    ),
-    const SizedBox(height: 8),
-    _buildModernLegendItem(
-    context: context,
-    color: Colors.orange,
-    label: 'Warning',
-    percentage: '20%',
-    ),
-    const SizedBox(height: 8),
-    _buildModernLegendItem(
-    context: context,
-    color: Colors.red,
-    label: 'Critical',
-    percentage: '25%',
-    ),
-    ],
-    ),
-    ],
-    );
-    }
-
-    Widget _buildDesktopChart(BuildContext context) {
-    return Row(
-    children: [
-    Expanded(
-    flex: 2,
-    child: SizedBox(
-    height: 180,
-    child: PieChart(
-    PieChartData(
-    pieTouchData: PieTouchData(
-    touchCallback: (FlTouchEvent event, pieTouchResponse) {
-    setState(() {
-    if (!event.isInterestedForInteractions ||
-    pieTouchResponse == null ||
-    pieTouchResponse.touchedSection == null) {
-    touchedIndex = -1;
-    return;
-    }
-    touchedIndex = pieTouchResponse
-        .touchedSection!.touchedSectionIndex;
-    });
-    },
-    ),
-    borderData: FlBorderData(show: false),
-    sectionsSpace: 2,
-    centerSpaceRadius: 40,
-    sections: showingSections(),
-    ),
-    ),
-    ),
-    ),
-    Expanded(
-    child: Column(
-    children: [
-    _buildModernLegendItem(
-    context: context,
-    color: const Color(0xFF4CAF50),
-    label: 'Healthy',
-    percentage: '55%',
-    ),
-    const SizedBox(height: 12),
-    _buildModernLegendItem(
-    context: context,
-    color: Colors.orange,
-    label: 'Warning',
-    percentage: '20%',
-    ),
-    const SizedBox(height: 12),
-    _buildModernLegendItem(
-    context: context,
-    color: Colors.red,
-    label: 'Critical',
-    percentage: '25%',
-    ),
-    ],
-    ),
-    ),
-    ],
-    );
-    }
-
-    Widget _buildModernLegendItem({
+  Widget _buildModernLegendItem({
     required BuildContext context,
     required Color color,
     required String label,
     required String percentage,
-    }) {
+  }) {
     return Row(
-    children: [
-    Container(
-    width: _isMobile(context) ? 10 : 12,
-    height: _isMobile(context) ? 10 : 12,
-    decoration: BoxDecoration(
-    color: color,
-    shape: BoxShape.circle,
-    ),
-    ),
-    const SizedBox(width: 8),
-    Expanded(
-    child: Text(
-    label,
-    style: GoogleFonts.inter(
-    fontSize: _getResponsiveFontSize(context, 14),
-    fontWeight: FontWeight.w500,
-    color: Colors.black87,
-    ),
-    ),
-    ),
-    Text(
-    percentage,
-    style: GoogleFonts.montserrat(
-    fontSize: _getResponsiveFontSize(context, 14),
-    fontWeight: FontWeight.bold,
-    color: color,
-    ),
-    ),
-    ],
+      children: [
+        Container(
+          width: _isMobile(context) ? 10 : 12,
+          height: _isMobile(context) ? 10 : 12,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: _getResponsiveFontSize(context, 14),
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
+            ),
+          ),
+        ),
+        Text(
+          percentage,
+          style: GoogleFonts.montserrat(
+            fontSize: _getResponsiveFontSize(context, 14),
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
     );
-    }
-
-    Widget _buildRecommendationSection(BuildContext context) {
-    if (_dashboardData == null) {
-    return Container(
-    padding: EdgeInsets.all(_isMobile(context) ? 12 : 16),
-    decoration: BoxDecoration(
-    color: Colors.grey.shade50,
-    borderRadius: BorderRadius.circular(12),
-    border: Border.all(color: Colors.grey.shade200),
-    ),
-    child: Row(
-    children: [
-    Icon(Icons.info_outline, color: Colors.grey.shade400, size: 20),
-    const SizedBox(width: 8),
-    Expanded(
-    child: Text(
-    'Load sensor data to get recommendations',
-    style: GoogleFonts.inter(
-    fontSize: _getResponsiveFontSize(context, 14),
-    color: Colors.grey.shade600,
-    ),
-    ),
-    ),
-    ],
-    ),
-    );
-    }
-
-    // Generate recommendations based on sensor data
-    List<String> recommendations = [];
-    Color containerColor = Colors.blue.shade50;
-    Color borderColor = Colors.blue.shade200;
-    Color textColor = Colors.blue.shade800;
-    String title = 'Smart Recommendations';
-
-    // Check temperature
-    if (_dashboardData!.temperature >= 35) {
-    recommendations.add('Critical: Provide immediate shade or cooling');
-    recommendations.add('Increase irrigation to prevent heat stress');
-    containerColor = Colors.red.shade50;
-    borderColor = Colors.red.shade200;
-    textColor = Colors.red.shade800;
-    title = 'Urgent Action Required';
-    } else if (_dashboardData!.temperature >= 30) {
-    recommendations.add('Monitor temperature closely');
-    recommendations.add('Consider shade cloth installation');
-    }
-
-    // Check humidity
-    if (_dashboardData!.humidity < 30) {
-    recommendations.add('Increase humidity through misting');
-    } else if (_dashboardData!.humidity > 80) {
-    recommendations.add('Improve ventilation to reduce humidity');
-    }
-
-    // Check soil pH
-    if (_dashboardData!.soilPH < 5.5) {
-    recommendations.add('Apply lime to increase soil pH');
-    } else if (_dashboardData!.soilPH > 7.5) {
-    recommendations.add('Apply sulfur to decrease soil pH');
-    }
-
-    // If no specific recommendations, provide general ones
-    if (recommendations.isEmpty) {
-    recommendations = [
-    'All sensors are within optimal range',
-    'Continue current maintenance routine',
-    'Monitor daily for any changes'
-    ];
-    containerColor = Colors.green.shade50;
-    borderColor = Colors.green.shade200;
-    textColor = Colors.green.shade800;
-    title = 'System Status: Good';
-    }
-
-    return Container(
-    padding: EdgeInsets.all(_isMobile(context) ? 12 : 16),
-    decoration: BoxDecoration(
-    color: containerColor,
-    borderRadius: BorderRadius.circular(12),
-    border: Border.all(color: borderColor),
-    ),
-    child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-    Row(
-    children: [
-    Icon(Icons.lightbulb, color: textColor, size: 20),
-    const SizedBox(width: 8),
-    Expanded(
-    child: Text(
-    title,
-    style: GoogleFonts.montserrat(
-    fontSize: _getResponsiveFontSize(context, 16),
-    fontWeight: FontWeight.bold,
-    color: textColor,
-    ),
-    ),
-    ),
-    ],
-    ),
-    const SizedBox(height: 12),
-    Text(
-    'Based on current sensor data from ${_dashboardData!.timestamp.toString().substring(0, 16)}',
-    style: GoogleFonts.inter(
-    fontSize: _getResponsiveFontSize(context, 13),
-    color: textColor,
-    height: 1.4,
-    ),
-    ),
-    const SizedBox(height: 12),
-    ...recommendations.take(3).map(
-    (recommendation) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
-    child: Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-    Icon(
-    recommendations.isEmpty || title.contains('Good')
-    ? Icons.check_circle
-        : Icons.warning,
-    color: title.contains('Good') ? Colors.green : Colors.orange,
-    size: 16,
-    ),
-    const SizedBox(width: 8),
-    Expanded(
-    child: Text(
-    recommendation,
-    style: GoogleFonts.inter(
-    fontSize: _getResponsiveFontSize(context, 12),
-    color: textColor,
-    ),
-    ),
-    ),
-    ],
-    ),
-    ),
-    ),
-    ],
-    ),
-    );
-    }
-
-    List<PieChartSectionData> showingSections() {
-    return List.generate(3, (i) {
-    final isTouched = i == touchedIndex;
-    final fontSize = isTouched ? 16.0 : 12.0;
-    final radius = isTouched ? 65.0 : 60.0;
-
-    switch (i) {
-    case 0:
-    return PieChartSectionData(
-    color: const Color(0xFF4CAF50),
-    value: 55,
-    title: '55%',
-    radius: radius,
-    titleStyle: GoogleFonts.inter(
-    fontSize: fontSize,
-    fontWeight: FontWeight.bold,
-    color: Colors.white,
-    ),
-    );
-    case 1:
-    return PieChartSectionData(
-    color: Colors.orange,
-    value: 20,
-    title: '20%',
-    radius: radius,
-    titleStyle: GoogleFonts.inter(
-    fontSize: fontSize,
-    fontWeight: FontWeight.bold,
-    color: Colors.white,
-    ),
-    );
-    case 2:
-    return PieChartSectionData(
-    color: Colors.red,
-    value: 25,
-    title: '25%',
-    radius: radius,
-    titleStyle: GoogleFonts.inter(
-    fontSize: fontSize,
-    fontWeight: FontWeight.bold,
-    color: Colors.white,
-    ),
-    );
-    default:
-    throw Error();
-    }
-    });
-    }
   }
+
+  Widget _buildRecommendationSection(BuildContext context) {
+    if (_dashboardData == null) {
+      return Container(
+        padding: EdgeInsets.all(_isMobile(context) ? 12 : 16),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.grey.shade400, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Load sensor data to get recommendations',
+                style: GoogleFonts.inter(
+                  fontSize: _getResponsiveFontSize(context, 14),
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Use API diagnosis and recommendation
+    final diagnosis = _dashboardData!.diagnosis;
+    final recommendation = _dashboardData!.recommendation;
+    final plantStatus = _dashboardData!.plantStatus;
+
+    // Determine colors based on plant status
+    Color containerColor = Colors.green.shade50;
+    Color borderColor = Colors.green.shade200;
+    Color textColor = Colors.green.shade800;
+    String title = 'Plant Status : $plantStatus';
+    IconData iconData = Icons.check_circle;
+
+    if (plantStatus.toLowerCase().contains('optimal') ||
+        plantStatus.toLowerCase().contains('baik')) {
+      // Keep green colors for optimal status
+    } else if (plantStatus.toLowerCase().contains('warning') ||
+        plantStatus.toLowerCase().contains('hati')) {
+      containerColor = Colors.orange.shade50;
+      borderColor = Colors.orange.shade200;
+      textColor = Colors.orange.shade800;
+      iconData = Icons.warning;
+    } else if (plantStatus.toLowerCase().contains('critical') ||
+        plantStatus.toLowerCase().contains('buruk')) {
+      containerColor = Colors.red.shade50;
+      borderColor = Colors.red.shade200;
+      textColor = Colors.red.shade800;
+      title = 'Urgent Action Required';
+      iconData = Icons.error;
+    }
+
+    return Container(
+      padding: EdgeInsets.all(_isMobile(context) ? 12 : 16),
+      decoration: BoxDecoration(
+        color: containerColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.lightbulb, color: textColor, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: GoogleFonts.montserrat(
+                    fontSize: _getResponsiveFontSize(context, 16),
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Diagnosis section
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.analytics, color: textColor, size: 16),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Diagnosis:',
+                      style: GoogleFonts.montserrat(
+                        fontSize: _getResponsiveFontSize(context, 14),
+                        fontWeight: FontWeight.w600,
+                        color: textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      diagnosis,
+                      style: GoogleFonts.inter(
+                        fontSize: _getResponsiveFontSize(context, 13),
+                        color: textColor,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // Recommendation section
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(iconData, color: textColor, size: 16),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Recommendation:',
+                      style: GoogleFonts.montserrat(
+                        fontSize: _getResponsiveFontSize(context, 14),
+                        fontWeight: FontWeight.w600,
+                        color: textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      recommendation,
+                      style: GoogleFonts.inter(
+                        fontSize: _getResponsiveFontSize(context, 13),
+                        color: textColor,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 8),
+
+          // Timestamp
+          Text(
+            'Data from: ${_dashboardData!.summaryDate.toString().substring(0, 16)}',
+            style: GoogleFonts.inter(
+              fontSize: _getResponsiveFontSize(context, 11),
+              color: textColor.withOpacity(0.7),
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<PieChartSectionData> showingSections() {
+    return List.generate(3, (i) {
+      final isTouched = i == touchedIndex;
+      final fontSize = isTouched ? 16.0 : 12.0;
+      final radius = isTouched ? 65.0 : 60.0;
+
+      switch (i) {
+        case 0:
+          return PieChartSectionData(
+            color: const Color(0xFF4CAF50),
+            value: 55,
+            title: '55%',
+            radius: radius,
+            titleStyle: GoogleFonts.inter(
+              fontSize: fontSize,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          );
+        case 1:
+          return PieChartSectionData(
+            color: Colors.orange,
+            value: 20,
+            title: '20%',
+            radius: radius,
+            titleStyle: GoogleFonts.inter(
+              fontSize: fontSize,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          );
+        case 2:
+          return PieChartSectionData(
+            color: Colors.red,
+            value: 25,
+            title: '25%',
+            radius: radius,
+            titleStyle: GoogleFonts.inter(
+              fontSize: fontSize,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          );
+        default:
+          throw Error();
+      }
+    });
+  }
+}

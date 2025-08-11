@@ -1,4 +1,4 @@
-// lib/config/routes/app_router.dart
+// lib/config/routes/app_router.dart - CORRECTED VERSION
 import 'package:PanenIn/features/auth/screens/profile_screen.dart';
 import 'package:PanenIn/features/auth/screens/sign_in_screen.dart';
 import 'package:PanenIn/features/auth/screens/sign_up_screen.dart';
@@ -6,6 +6,7 @@ import 'package:PanenIn/features/auth/services/auth_service.dart';
 import 'package:PanenIn/features/chatbot/screens/chatroom_list_screen.dart';
 import 'package:PanenIn/features/chatbot/screens/chatroom_screen.dart';
 import 'package:PanenIn/features/chatbot/screens/welcome_screen.dart';
+import 'package:PanenIn/features/chatbot/services/chatbot_service.dart';
 import 'package:PanenIn/features/forum/screens/question_detail_screen.dart';
 import 'package:PanenIn/features/forum/screens/forum_screen.dart';
 import 'package:PanenIn/features/forum/screens/question_form_screen.dart';
@@ -30,7 +31,7 @@ class AppRouter {
     _router = GoRouter(
       navigatorKey: rootNavigatorKey,
       initialLocation: '/',
-      debugLogDiagnostics: false,
+      debugLogDiagnostics: true,
 
       redirect: (context, state) {
         final isLoggedIn = authProvider.isLoggedIn;
@@ -88,12 +89,26 @@ class AppRouter {
           builder: (context, state) => const SignUpScreen(),
         ),
 
+        // MOVED: Chat route to root level for back button
+        GoRoute(
+          path: '/chat',
+          name: 'chat',
+          builder: (context, state) {
+            final conversationId = state.uri.queryParameters['conversationId'];
+            return PanenAIChatScreen(
+              conversationId: conversationId,
+            );
+          },
+        ),
+
+        // MOVED: Profile route to root level for back button
         GoRoute(
           path: '/profile',
           name: 'profile',
           builder: (context, state) => const ProfileScreen(),
         ),
 
+        // MOVED: Post detail to root level for back button
         GoRoute(
           path: '/post/:postId',
           name: 'post_detail',
@@ -134,6 +149,46 @@ class AppRouter {
           },
         ),
 
+        // MOVED: Land detail to root level for back button
+        GoRoute(
+          path: '/land/:landId',
+          name: 'landdetail',
+          builder: (context, state) {
+            final landId = state.pathParameters['landId'];
+            if (landId == null || landId.isEmpty) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                context.go('/monitoring');
+              });
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            final landName = state.uri.queryParameters['name'] ?? 'Unknown Land';
+            final statusStr = state.uri.queryParameters['status'] ?? 'healthy';
+
+            final status = switch (statusStr.toLowerCase()) {
+              'unhealthy' => FieldStatus.unhealthy,
+              'critical' => FieldStatus.critical,
+              _ => FieldStatus.healthy,
+            };
+
+            return LandDetailScreen(
+              landId: landId,
+              landName: landName,
+              currentStatus: status,
+              fieldData: state.extra is FieldData ? state.extra as FieldData : null,
+            );
+          },
+        ),
+
+        // MOVED: Question form to root level for back button
+        GoRoute(
+          path: '/ask',
+          name: 'ask_question',
+          builder: (context, state) => const QuestionFormScreen(),
+        ),
+
         ShellRoute(
           navigatorKey: shellNavigatorKey,
           builder: (context, state, child) {
@@ -148,43 +203,32 @@ class AppRouter {
               ),
             ),
 
-            // Enhanced chatbot routes
+            // Chatbot routes - SIMPLIFIED without nested routes
             GoRoute(
               path: '/chatbot',
               name: 'chatbot',
+              redirect: (context, state) async {
+                try {
+                  final conversations = await ChatService.getUserConversations(context);
+                  if (conversations.isNotEmpty) {
+                    return '/chatbot/list';
+                  }
+                } catch (e) {
+                  print('Error checking conversations: $e');
+                }
+                return null;
+              },
               pageBuilder: (context, state) => const NoTransitionPage(
                 child: WelcomeChatScreen(),
               ),
-              routes: [
-                GoRoute(
-                    path: 'list',
-                    name: 'chatroom_list',
-                    builder: (context, state) => const ChatroomListScreen(),
-                    routes: [
-                      GoRoute(
-                        path: 'chat',
-                        name: 'chatroom',
-                        builder: (context, state) {
-                          final conversationId = state.uri.queryParameters['conversationId'];
-                          return PanenAIChatScreen(
-                            conversationId: conversationId,
-                          );
-                        },
-                      )
-                    ]
-                ),
-                // Direct chat route from welcome screen
-                GoRoute(
-                  path: 'chat',
-                  name: 'direct_chat',
-                  builder: (context, state) {
-                    final conversationId = state.uri.queryParameters['conversationId'];
-                    return PanenAIChatScreen(
-                      conversationId: conversationId,
-                    );
-                  },
-                ),
-              ],
+            ),
+
+            GoRoute(
+              path: '/chatbot/list',
+              name: 'chatroom_list',
+              pageBuilder: (context, state) => const NoTransitionPage(
+                child: ChatroomListScreen(),
+              ),
             ),
 
             GoRoute(
@@ -201,39 +245,6 @@ class AppRouter {
               pageBuilder: (context, state) => const NoTransitionPage(
                 child: ListLandDashboard(),
               ),
-              routes: [
-                GoRoute(
-                  path: 'detail/:landId',
-                  name: 'landdetail',
-                  builder: (context, state) {
-                    final landId = state.pathParameters['landId'];
-                    if (landId == null || landId.isEmpty) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        context.go('/monitoring');
-                      });
-                      return const Scaffold(
-                        body: Center(child: CircularProgressIndicator()),
-                      );
-                    }
-
-                    final landName = state.uri.queryParameters['name'] ?? 'Unknown Land';
-                    final statusStr = state.uri.queryParameters['status'] ?? 'healthy';
-
-                    final status = switch (statusStr.toLowerCase()) {
-                      'unhealthy' => FieldStatus.unhealthy,
-                      'critical' => FieldStatus.critical,
-                      _ => FieldStatus.healthy,
-                    };
-
-                    return LandDetailScreen(
-                      landId: landId,
-                      landName: landName,
-                      currentStatus: status,
-                      fieldData: state.extra is FieldData ? state.extra as FieldData : null,
-                    );
-                  },
-                ),
-              ],
             ),
 
             GoRoute(
@@ -242,13 +253,6 @@ class AppRouter {
               pageBuilder: (context, state) => const NoTransitionPage(
                 child: ForumScreen(),
               ),
-              routes: [
-                GoRoute(
-                  path: 'ask',
-                  name: 'ask_question',
-                  builder: (context, state) => const QuestionFormScreen(),
-                ),
-              ],
             ),
           ],
         ),
@@ -288,7 +292,7 @@ class _ScaffoldWithNavBarState extends State<ScaffoldWithNavBar> {
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).uri.path;
 
-    // Find the best matching route with better logic
+    // Find the best matching route
     int newIndex = 0;
     for (int i = 0; i < _routes.length; i++) {
       if (location.startsWith(_routes[i])) {

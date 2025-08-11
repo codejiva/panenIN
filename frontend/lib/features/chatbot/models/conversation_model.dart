@@ -22,6 +22,21 @@ class Conversation {
     required this.updatedAt,
   });
 
+  // Factory for backend response format
+  factory Conversation.fromBackendJson(Map<String, dynamic> json) {
+    return Conversation(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      lastMessage: null, // Backend doesn't return this directly
+      lastMessageTime: null, // Backend doesn't return this directly
+      unreadCount: 0, // Backend doesn't return this directly
+      userId: '', // We don't get this from the response
+      createdAt: DateTime.now(), // Backend doesn't return this
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+    );
+  }
+
+  // Legacy factory for compatibility
   factory Conversation.fromJson(Map<String, dynamic> json) {
     return Conversation(
       id: json['id'] as String,
@@ -52,8 +67,8 @@ class Conversation {
     return ChatroomItem(
       id: id,
       title: title,
-      lastMessage: lastMessage ?? '',
-      timestamp: _formatTimestamp(lastMessageTime),
+      lastMessage: lastMessage ?? 'Start a conversation',
+      timestamp: _formatTimestamp(updatedAt),
       isAI: true, // All conversations with backend are AI
       unreadCount: unreadCount,
       isOnline: true,
@@ -61,26 +76,20 @@ class Conversation {
     );
   }
 
-  String _formatTimestamp(String? timestamp) {
-    if (timestamp == null) return '';
-    try {
-      final dateTime = DateTime.parse(timestamp);
-      final now = DateTime.now();
-      final difference = now.difference(dateTime);
+  String _formatTimestamp(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
 
-      if (difference.inDays > 1) {
-        return "${difference.inDays} days ago";
-      } else if (difference.inDays == 1) {
-        return "Yesterday";
-      } else if (difference.inHours > 0) {
-        return "${difference.inHours}h ago";
-      } else if (difference.inMinutes > 0) {
-        return "${difference.inMinutes}m ago";
-      } else {
-        return "Just now";
-      }
-    } catch (e) {
-      return timestamp;
+    if (difference.inDays > 1) {
+      return "${difference.inDays} days ago";
+    } else if (difference.inDays == 1) {
+      return "Yesterday";
+    } else if (difference.inHours > 0) {
+      return "${difference.inHours}h ago";
+    } else if (difference.inMinutes > 0) {
+      return "${difference.inMinutes}m ago";
+    } else {
+      return "Just now";
     }
   }
 }

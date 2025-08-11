@@ -1,4 +1,3 @@
-// lib/features/chatbot/screens/enhanced_chat_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -16,10 +15,11 @@ class PanenAIChatScreen extends StatefulWidget {
   });
 
   @override
-  _EnhancedPanenAIChatScreenState createState() => _EnhancedPanenAIChatScreenState();
+  State<PanenAIChatScreen> createState() => _PanenAIChatScreenState();
 }
 
-class _EnhancedPanenAIChatScreenState extends State<PanenAIChatScreen> {
+class _PanenAIChatScreenState extends State<PanenAIChatScreen>
+    with AutomaticKeepAliveClientMixin {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<ChatMessage> _messages = [];
@@ -28,14 +28,24 @@ class _EnhancedPanenAIChatScreenState extends State<PanenAIChatScreen> {
   bool _isRecording = false;
   bool _isAudioPlaying = false;
   bool _isLoading = false;
+  bool _isLoadingHistory = false;
   String? _currentConversationId;
   File? _selectedImage;
+
+  // Pagination for message history
+  static const int _messagesPerPage = 20;
+  bool _hasMoreMessages = true;
+  bool _isLoadingMore = false;
+
+  @override
+  bool get wantKeepAlive => true; // Keep state alive when switching tabs
 
   @override
   void initState() {
     super.initState();
     _currentConversationId = widget.conversationId;
-    _loadConversationHistory();
+    _initializeChat();
+    _setupScrollListener();
   }
 
   @override
@@ -45,35 +55,92 @@ class _EnhancedPanenAIChatScreenState extends State<PanenAIChatScreen> {
     super.dispose();
   }
 
+  void _setupScrollListener() {
+    _scrollController.addListener(() {
+      // Load more messages when scrolled to top
+      if (_scrollController.position.pixels <= 200 &&
+          !_isLoadingMore &&
+          _hasMoreMessages &&
+          _currentConversationId != null) {
+        _loadMoreMessages();
+      }
+    });
+  }
+
+  Future<void> _initializeChat() async {
+    if (_currentConversationId != null) {
+      await _loadConversationHistory();
+    }
+  }
+
   Future<void> _loadConversationHistory() async {
     if (_currentConversationId == null) return;
 
-    setState(() => _isLoading = true);
+    setState(() => _isLoadingHistory = true);
 
     try {
       final messages = await ChatService.getConversationHistory(
         context,
         _currentConversationId!,
       );
-      setState(() {
-        _messages.clear();
-        _messages.addAll(messages);
-      });
-      _scrollToBottom();
+
+      if (mounted) {
+        setState(() {
+          _messages.clear();
+          _messages.addAll(messages.take(_messagesPerPage));
+          _hasMoreMessages = messages.length > _messagesPerPage;
+        });
+        _scrollToBottom();
+      }
     } catch (e) {
-      _showErrorSnackBar('Failed to load conversation history: ${e.toString()}');
+      if (mounted) {
+        _showErrorSnackBar('Failed to load conversation: ${e.toString()}');
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoadingHistory = false);
+      }
+    }
+  }
+
+  Future<void> _loadMoreMessages() async {
+    if (_isLoadingMore || !_hasMoreMessages) return;
+
+    setState(() => _isLoadingMore = true);
+
+    try {
+      final allMessages = await ChatService.getConversationHistory(
+        context,
+        _currentConversationId!,
+      );
+
+      final startIndex = _messages.length;
+      final endIndex = (startIndex + _messagesPerPage).clamp(0, allMessages.length);
+      final newMessages = allMessages.sublist(startIndex, endIndex);
+
+      if (mounted) {
+        setState(() {
+          _messages.addAll(newMessages);
+          _hasMoreMessages = endIndex < allMessages.length;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorSnackBar('Failed to load more messages: ${e.toString()}');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingMore = false);
+      }
     }
   }
 
   Future<void> _sendMessage() async {
     final messageText = _messageController.text.trim();
 
-    // Validate input
     if (messageText.isEmpty && _selectedImage == null) return;
 
-    // Create user message
+    // Create optimistic UI update
     final userMessage = ChatMessage(
       isUser: true,
       message: messageText.isNotEmpty ? messageText : '[Image]',
@@ -88,6 +155,11 @@ class _EnhancedPanenAIChatScreenState extends State<PanenAIChatScreen> {
       _isLoading = true;
     });
 
+    // Update cache immediately for better UX
+    if (_currentConversationId != null) {
+      ChatService.addMessageToCache(_currentConversationId!, userMessage);
+    }
+
     _messageController.clear();
     final imageToSend = _selectedImage;
     _selectedImage = null;
@@ -97,7 +169,6 @@ class _EnhancedPanenAIChatScreenState extends State<PanenAIChatScreen> {
       final ChatResponse response;
 
       if (_currentConversationId == null) {
-        // Start new conversation
         response = await ChatService.startNewChat(
           context,
           message: messageText.isNotEmpty ? messageText : null,
@@ -105,7 +176,6 @@ class _EnhancedPanenAIChatScreenState extends State<PanenAIChatScreen> {
         );
         _currentConversationId = response.conversationId;
       } else {
-        // Continue existing conversation
         response = await ChatService.continueChat(
           context,
           conversationId: _currentConversationId!,
@@ -114,58 +184,74 @@ class _EnhancedPanenAIChatScreenState extends State<PanenAIChatScreen> {
         );
       }
 
-      // Update user message status
-      final updatedUserMessage = userMessage.copyWith(
-        status: MessageStatus.sent,
-        conversationId: _currentConversationId,
-      );
+      if (mounted) {
+        final updatedUserMessage = userMessage.copyWith(
+          status: MessageStatus.sent,
+          conversationId: _currentConversationId,
+        );
 
-      // Create AI response message
-      final aiMessage = response.toAIMessage().copyWith(
-        conversationId: _currentConversationId,
-      );
+        final aiMessage = response.toAIMessage().copyWith(
+          conversationId: _currentConversationId,
+        );
 
-      setState(() {
-        final index = _messages.indexWhere((msg) => msg.id == userMessage.id);
-        if (index != -1) {
-          _messages[index] = updatedUserMessage;
+        setState(() {
+          final index = _messages.indexWhere((msg) => msg.id == userMessage.id);
+          if (index != -1) {
+            _messages[index] = updatedUserMessage;
+          }
+          _messages.add(aiMessage);
+        });
+
+        // Update cache
+        if (_currentConversationId != null) {
+          ChatService.updateMessageInCache(_currentConversationId!, updatedUserMessage);
+          ChatService.addMessageToCache(_currentConversationId!, aiMessage);
         }
-        _messages.add(aiMessage);
-      });
 
-      _scrollToBottom();
+        _scrollToBottom();
+      }
     } catch (e) {
-      // Update user message status to failed
-      final failedMessage = userMessage.copyWith(status: MessageStatus.failed);
-      setState(() {
-        final index = _messages.indexWhere((msg) => msg.id == userMessage.id);
-        if (index != -1) {
-          _messages[index] = failedMessage;
-        }
-      });
+      if (mounted) {
+        final failedMessage = userMessage.copyWith(status: MessageStatus.failed);
+        setState(() {
+          final index = _messages.indexWhere((msg) => msg.id == userMessage.id);
+          if (index != -1) {
+            _messages[index] = failedMessage;
+          }
+        });
 
-      _showErrorSnackBar('Failed to send message: ${e.toString()}');
+        if (_currentConversationId != null) {
+          ChatService.updateMessageInCache(_currentConversationId!, failedMessage);
+        }
+
+        _showErrorSnackBar('Failed to send message: ${e.toString()}');
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
+  // Optimized image picker with compression
   Future<void> _pickImage(ImageSource source) async {
     try {
       final XFile? image = await _imagePicker.pickImage(
         source: source,
         maxWidth: 1024,
         maxHeight: 1024,
-        imageQuality: 85,
+        imageQuality: 70, // Reduced quality for smaller file size
       );
 
-      if (image != null) {
+      if (image != null && mounted) {
         setState(() {
           _selectedImage = File(image.path);
         });
       }
     } catch (e) {
-      _showErrorSnackBar('Failed to pick image: ${e.toString()}');
+      if (mounted) {
+        _showErrorSnackBar('Failed to pick image: ${e.toString()}');
+      }
     }
   }
 
@@ -218,10 +304,9 @@ class _EnhancedPanenAIChatScreenState extends State<PanenAIChatScreen> {
     );
   }
 
-  void _retryMessage(ChatMessage message) async {
+  Future<void> _retryMessage(ChatMessage message) async {
     if (message.status != MessageStatus.failed) return;
 
-    // Update message status to sending
     final retryMessage = message.copyWith(status: MessageStatus.sending);
     setState(() {
       final index = _messages.indexWhere((msg) => msg.id == message.id);
@@ -235,7 +320,6 @@ class _EnhancedPanenAIChatScreenState extends State<PanenAIChatScreen> {
       final ChatResponse response;
       File? imageFile;
 
-      // Check if message has image
       if (message.localImagePath != null) {
         imageFile = File(message.localImagePath!);
       }
@@ -243,7 +327,8 @@ class _EnhancedPanenAIChatScreenState extends State<PanenAIChatScreen> {
       if (_currentConversationId == null) {
         response = await ChatService.startNewChat(
           context,
-          message: message.message.isNotEmpty && message.message != '[Image]' ? message.message : null,
+          message: message.message.isNotEmpty && message.message != '[Image]'
+              ? message.message : null,
           imageFile: imageFile,
         );
         _currentConversationId = response.conversationId;
@@ -251,44 +336,48 @@ class _EnhancedPanenAIChatScreenState extends State<PanenAIChatScreen> {
         response = await ChatService.continueChat(
           context,
           conversationId: _currentConversationId!,
-          message: message.message.isNotEmpty && message.message != '[Image]' ? message.message : null,
+          message: message.message.isNotEmpty && message.message != '[Image]'
+              ? message.message : null,
           imageFile: imageFile,
         );
       }
 
-      // Update message status to sent
-      final sentMessage = retryMessage.copyWith(
-        status: MessageStatus.sent,
-        conversationId: _currentConversationId,
-      );
+      if (mounted) {
+        final sentMessage = retryMessage.copyWith(
+          status: MessageStatus.sent,
+          conversationId: _currentConversationId,
+        );
 
-      // Create AI response
-      final aiMessage = response.toAIMessage().copyWith(
-        conversationId: _currentConversationId,
-      );
+        final aiMessage = response.toAIMessage().copyWith(
+          conversationId: _currentConversationId,
+        );
 
-      setState(() {
-        final index = _messages.indexWhere((msg) => msg.id == retryMessage.id);
-        if (index != -1) {
-          _messages[index] = sentMessage;
-        }
-        _messages.add(aiMessage);
-      });
+        setState(() {
+          final index = _messages.indexWhere((msg) => msg.id == retryMessage.id);
+          if (index != -1) {
+            _messages[index] = sentMessage;
+          }
+          _messages.add(aiMessage);
+        });
 
-      _scrollToBottom();
+        _scrollToBottom();
+      }
     } catch (e) {
-      // Update message status back to failed
-      final failedMessage = retryMessage.copyWith(status: MessageStatus.failed);
-      setState(() {
-        final index = _messages.indexWhere((msg) => msg.id == retryMessage.id);
-        if (index != -1) {
-          _messages[index] = failedMessage;
-        }
-      });
+      if (mounted) {
+        final failedMessage = retryMessage.copyWith(status: MessageStatus.failed);
+        setState(() {
+          final index = _messages.indexWhere((msg) => msg.id == retryMessage.id);
+          if (index != -1) {
+            _messages[index] = failedMessage;
+          }
+        });
 
-      _showErrorSnackBar('Failed to retry message: ${e.toString()}');
+        _showErrorSnackBar('Failed to retry message: ${e.toString()}');
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -310,30 +399,33 @@ class _EnhancedPanenAIChatScreenState extends State<PanenAIChatScreen> {
   }
 
   void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
         duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: _buildAppBar(),
       body: Column(
         children: [
-          if (_isLoading && _messages.isEmpty)
-            const Expanded(
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else
-            Expanded(
-              child: _buildMessageList(),
+          if (_isLoadingHistory)
+            const LinearProgressIndicator(
+              backgroundColor: Colors.transparent,
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF48BB78)),
             ),
+          Expanded(child: _buildMessageList()),
           if (_selectedImage != null) _buildSelectedImagePreview(),
           _buildMessageInput(),
         ],
@@ -368,6 +460,14 @@ class _EnhancedPanenAIChatScreenState extends State<PanenAIChatScreen> {
   }
 
   Widget _buildMessageList() {
+    if (_isLoadingHistory && _messages.isEmpty) {
+      return const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF48BB78)),
+        ),
+      );
+    }
+
     if (_messages.isEmpty) {
       return _buildEmptyState();
     }
@@ -375,14 +475,39 @@ class _EnhancedPanenAIChatScreenState extends State<PanenAIChatScreen> {
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(16),
-      itemCount: _messages.length + (_isLoading ? 1 : 0),
+      itemCount: _messages.length +
+          (_isLoading ? 1 : 0) +
+          (_isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
-        if (index == _messages.length && _isLoading) {
+        // Loading more indicator at the top
+        if (_isLoadingMore && index == 0) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          );
+        }
+
+        // Adjust index for loading more indicator
+        final messageIndex = _isLoadingMore ? index - 1 : index;
+
+        // Typing indicator at the bottom
+        if (messageIndex == _messages.length && _isLoading) {
           return _buildTypingIndicator();
         }
 
-        final message = _messages[index];
-        return _buildMessageBubble(message);
+        // Regular message
+        if (messageIndex < _messages.length) {
+          final message = _messages[messageIndex];
+          return _buildMessageBubble(message);
+        }
+
+        return const SizedBox.shrink();
       },
     );
   }
@@ -435,10 +560,10 @@ class _EnhancedPanenAIChatScreenState extends State<PanenAIChatScreen> {
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
+          const CircleAvatar(
             radius: 16,
-            backgroundColor: const Color(0xFF48BB78),
-            child: const Icon(
+            backgroundColor: Color(0xFF48BB78),
+            child: Icon(
               Icons.smart_toy,
               size: 18,
               color: Colors.white,
@@ -451,29 +576,10 @@ class _EnhancedPanenAIChatScreenState extends State<PanenAIChatScreen> {
               color: const Color(0xFFF7F7F7),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: 50,
-                  height: 20,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: List.generate(3, (index) {
-                      return AnimatedContainer(
-                        duration: Duration(milliseconds: 600 + (index * 100)),
-                        curve: Curves.easeInOut,
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF48BB78).withOpacity(0.6),
-                          shape: BoxShape.circle,
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-              ],
+            child: const SizedBox(
+              width: 50,
+              height: 20,
+              child: _TypingAnimation(),
             ),
           ),
         ],
@@ -491,10 +597,10 @@ class _EnhancedPanenAIChatScreenState extends State<PanenAIChatScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!message.isUser) ...[
-            CircleAvatar(
+            const CircleAvatar(
               radius: 16,
-              backgroundColor: const Color(0xFF48BB78),
-              child: const Icon(
+              backgroundColor: Color(0xFF48BB78),
+              child: Icon(
                 Icons.smart_toy,
                 size: 18,
                 color: Colors.white,
@@ -700,25 +806,27 @@ class _EnhancedPanenAIChatScreenState extends State<PanenAIChatScreen> {
               ],
             ),
           )),
-          const SizedBox(height: 8),
-          const Text(
-            "Management:",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
+          if (diagnosis.management.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            const Text(
+              "Management:",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          ...diagnosis.management.map((management) => Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("• ", style: TextStyle(fontWeight: FontWeight.bold)),
-                Expanded(child: Text(management, style: const TextStyle(fontSize: 13))),
-              ],
-            ),
-          )),
+            const SizedBox(height: 4),
+            ...diagnosis.management.map((management) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("• ", style: TextStyle(fontWeight: FontWeight.bold)),
+                  Expanded(child: Text(management, style: const TextStyle(fontSize: 13))),
+                ],
+              ),
+            )),
+          ],
         ],
       ),
     );
@@ -785,6 +893,8 @@ class _EnhancedPanenAIChatScreenState extends State<PanenAIChatScreen> {
     );
   }
 
+// Versi yang lebih sederhana dan jelas:
+
   Widget _buildMessageInput() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -800,46 +910,140 @@ class _EnhancedPanenAIChatScreenState extends State<PanenAIChatScreen> {
       ),
       child: Row(
         children: [
-          IconButton(
-            onPressed: _showImageSourceActionSheet,
-            icon: const Icon(Icons.add, color: Colors.grey),
-          ),
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: TextField(
-                controller: _messageController,
-                decoration: const InputDecoration(
-                  hintText: 'Type a message...',
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  border: InputBorder.none,
+          // Tombol attach
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _showImageSourceActionSheet,
+              borderRadius: BorderRadius.circular(24),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  shape: BoxShape.circle,
                 ),
-                onSubmitted: (_) => _sendMessage(),
-                enabled: !_isLoading,
+                child: const Icon(
+                  Icons.attach_file,
+                  color: Color(0xFF48BB78),
+                  size: 20,
+                ),
               ),
             ),
           ),
-          IconButton(
-            onPressed: _showImageSourceActionSheet,
-            icon: const Icon(Icons.camera_alt, color: Colors.grey),
-          ),
-          GestureDetector(
-            onTap: _sendMessage,
+
+          const SizedBox(width: 12),
+
+          // Text input field
+          Expanded(
             child: Container(
-              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: _canSendMessage() ? const Color(0xFF48BB78) : Colors.grey,
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(25),
+                border: Border.all(
+                  color: Colors.grey[300]!,
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _messageController,
+                      decoration: const InputDecoration(
+                        hintText: 'Ketik pesan...',
+                        hintStyle: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14,
+                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        border: InputBorder.none,
+                      ),
+                      onSubmitted: (_) => _handleMessageSubmit(),
+                      onChanged: (text) {
+                        setState(() {}); // Update UI untuk tombol kirim
+                      },
+                      enabled: !_isLoading,
+                      maxLines: 4,
+                      minLines: 1,
+                      textCapitalization: TextCapitalization.sentences,
+                    ),
+                  ),
+
+                  // Camera button di dalam text field
+                  IconButton(
+                    onPressed: () => _pickImage(ImageSource.camera),
+                    icon: const Icon(
+                      Icons.camera_alt,
+                      color: Colors.grey,
+                      size: 20,
+                    ),
+                    tooltip: 'Ambil foto',
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 12),
+
+          // TOMBOL KIRIM YANG JELAS DAN BESAR
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: _isLoading
+                ? Container(
+              key: const ValueKey('loading'),
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: Colors.grey[400],
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                _selectedImage != null || _messageController.text.trim().isNotEmpty
-                    ? Icons.send
-                    : Icons.mic,
-                color: Colors.white,
-                size: 20,
+              child: const Center(
+                child: SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+              ),
+            )
+                : Material(
+              key: const ValueKey('send'),
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _handleMessageSubmit,
+                borderRadius: BorderRadius.circular(25),
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: _canSendMessage()
+                        ? const Color(0xFF48BB78)
+                        : Colors.grey[400],
+                    shape: BoxShape.circle,
+                    boxShadow: _canSendMessage()
+                        ? [
+                      BoxShadow(
+                        color: const Color(0xFF48BB78).withOpacity(0.4),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
+                        : null,
+                  ),
+                  child: Icon(
+                    _messageController.text.trim().isNotEmpty || _selectedImage != null
+                        ? Icons.send_rounded
+                        : Icons.mic_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
               ),
             ),
           ),
@@ -848,8 +1052,23 @@ class _EnhancedPanenAIChatScreenState extends State<PanenAIChatScreen> {
     );
   }
 
+// Method untuk handle submit message
+  void _handleMessageSubmit() {
+    if (_canSendMessage()) {
+      _sendMessage();
+    } else {
+      // Jika tidak bisa kirim, mungkin tampilkan pesan atau fokus ke text field
+      print('Cannot send message: text empty or loading');
+    }
+  }
+
+// Update _canSendMessage method
   bool _canSendMessage() {
-    return (_messageController.text.trim().isNotEmpty || _selectedImage != null) && !_isLoading;
+    final hasText = _messageController.text.trim().isNotEmpty;
+    final hasImage = _selectedImage != null;
+    final notLoading = !_isLoading;
+
+    return (hasText || hasImage) && notLoading;
   }
 
   void _showConversationOptions() {
@@ -888,7 +1107,7 @@ class _EnhancedPanenAIChatScreenState extends State<PanenAIChatScreen> {
     );
   }
 
-  void _deleteConversation() async {
+  Future<void> _deleteConversation() async {
     if (_currentConversationId == null) return;
 
     final confirmed = await showDialog<bool>(
@@ -920,5 +1139,62 @@ class _EnhancedPanenAIChatScreenState extends State<PanenAIChatScreen> {
         _showErrorSnackBar('Failed to delete conversation: ${e.toString()}');
       }
     }
+  }
+}
+
+// Optimized typing animation widget
+class _TypingAnimation extends StatefulWidget {
+  const _TypingAnimation();
+
+  @override
+  State<_TypingAnimation> createState() => _TypingAnimationState();
+}
+
+class _TypingAnimationState extends State<_TypingAnimation>
+    with TickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+    _animation = Tween(begin: 0.0, end: 1.0).animate(_controller);
+    _controller.repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: List.generate(3, (index) {
+            final delay = index * 0.2;
+            final value = (_animation.value + delay) % 1.0;
+            final opacity = value < 0.5 ? value * 2 : (1 - value) * 2;
+
+            return Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: const Color(0xFF48BB78).withOpacity(opacity.clamp(0.3, 1.0)),
+                shape: BoxShape.circle,
+              ),
+            );
+          }),
+        );
+      },
+    );
   }
 }

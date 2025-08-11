@@ -1,9 +1,6 @@
-
 import 'dart:convert';
-
-import '../models/dashboard_model.dart';
+import 'package:PanenIn/features/home/models/dashboard_model.dart';
 import 'package:http/http.dart' as http;
-
 
 class DashboardService {
   static const String _baseUrl = 'https://panen-in-teal.vercel.app/api';
@@ -11,7 +8,7 @@ class DashboardService {
   static Future<DashboardData?> fetchDashboardData() async {
     try {
       final response = await http.get(
-        Uri.parse('$_baseUrl/dashboard/data'),
+        Uri.parse('$_baseUrl/dashboard/summary'),
         headers: {
           'Content-Type': 'application/json',
         },
