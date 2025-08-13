@@ -17,6 +17,7 @@ class _MapScreenState extends State<MapScreen> {
   final Set<Marker> _markers = {};
   bool _isLoading = false;
   Village? _selectedVillage;
+  bool _showPredictionMode = false;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
@@ -36,32 +37,25 @@ class _MapScreenState extends State<MapScreen> {
     setState(() {
       _polygons.clear();
       _markers.clear();
+      _showPredictionMode = false;
 
-      // Koordinat batas Kabupaten Bogor yang beneran
       final List<LatLng> bogorBoundary = [
-        // Batas utara
         LatLng(-6.3500, 106.6500),
         LatLng(-6.3200, 106.7500),
         LatLng(-6.3000, 106.8500),
         LatLng(-6.2800, 106.9500),
         LatLng(-6.3000, 107.0500),
         LatLng(-6.3500, 107.1000),
-
-        // Batas timur
         LatLng(-6.4000, 107.1200),
         LatLng(-6.5000, 107.1500),
         LatLng(-6.6000, 107.1200),
         LatLng(-6.7000, 107.0800),
         LatLng(-6.7500, 107.0000),
-
-        // Batas selatan
         LatLng(-6.8000, 106.9500),
         LatLng(-6.8200, 106.8500),
         LatLng(-6.8000, 106.7500),
         LatLng(-6.7800, 106.6500),
         LatLng(-6.7500, 106.5500),
-
-        // Batas barat
         LatLng(-6.7000, 106.4800),
         LatLng(-6.6000, 106.4500),
         LatLng(-6.5000, 106.4800),
@@ -77,11 +71,99 @@ class _MapScreenState extends State<MapScreen> {
         fillColor: Colors.red.withOpacity(0.3),
       ));
 
-      // 1 marker di pusat
-      _markers.add(Marker(
-        markerId: const MarkerId('bogor_center'),
-        position: const LatLng(-6.5972, 106.7833),
-        infoWindow: const InfoWindow(title: 'Kabupaten Bogor'),
+      _markers.add(const Marker(
+        markerId: MarkerId('bogor_center'),
+        position: LatLng(-6.5972, 106.7833),
+        infoWindow: InfoWindow(title: 'Kabupaten Bogor'),
+      ));
+    });
+  }
+
+  void _showPredictionMap() {
+    setState(() {
+      _polygons.clear();
+      _markers.clear();
+      _showPredictionMode = true;
+
+      // High Fertility zones (dark green)
+      _polygons.add(Polygon(
+        polygonId: const PolygonId('high_fertility_1'),
+        points: [
+          LatLng(-6.4000, 106.6000),
+          LatLng(-6.4000, 106.7000),
+          LatLng(-6.5000, 106.7000),
+          LatLng(-6.5000, 106.6000),
+        ],
+        strokeWidth: 1,
+        strokeColor: Colors.green.shade800,
+        fillColor: Colors.green.shade800,
+      ));
+
+      _polygons.add(Polygon(
+        polygonId: const PolygonId('high_fertility_2'),
+        points: [
+          LatLng(-6.5500, 106.8500),
+          LatLng(-6.5500, 106.9500),
+          LatLng(-6.6500, 106.9500),
+          LatLng(-6.6500, 106.8500),
+        ],
+        strokeWidth: 1,
+        strokeColor: Colors.green.shade800,
+        fillColor: Colors.green.shade800,
+      ));
+
+      // Medium Fertility zones
+      _polygons.add(Polygon(
+        polygonId: const PolygonId('medium_fertility_1'),
+        points: [
+          LatLng(-6.4000, 106.7000),
+          LatLng(-6.4000, 106.8000),
+          LatLng(-6.5000, 106.8000),
+          LatLng(-6.5000, 106.7000),
+        ],
+        strokeWidth: 1,
+        strokeColor: Colors.green.shade600,
+        fillColor: Colors.green.shade600,
+      ));
+
+      _polygons.add(Polygon(
+        polygonId: const PolygonId('medium_fertility_2'),
+        points: [
+          LatLng(-6.5500, 106.7500),
+          LatLng(-6.5500, 106.8500),
+          LatLng(-6.6500, 106.8500),
+          LatLng(-6.6500, 106.7500),
+        ],
+        strokeWidth: 1,
+        strokeColor: Colors.green.shade600,
+        fillColor: Colors.green.shade600,
+      ));
+
+      // Low Fertility zones
+      _polygons.add(Polygon(
+        polygonId: const PolygonId('low_fertility_1'),
+        points: [
+          LatLng(-6.5000, 106.6000),
+          LatLng(-6.5000, 106.7000),
+          LatLng(-6.6000, 106.7000),
+          LatLng(-6.6000, 106.6000),
+        ],
+        strokeWidth: 1,
+        strokeColor: Colors.green.shade300,
+        fillColor: Colors.green.shade300,
+      ));
+
+      _polygons.add(Polygon(
+        polygonId: const PolygonId('low_fertility_2'),
+        points: [
+          LatLng(-6.6500, 106.7000),
+          LatLng(-6.6500, 106.8000),
+          LatLng(-6.7000, 106.8000),
+          LatLng(-6.7000, 106.7000),
+        ],
+        strokeWidth: 1,
+        strokeColor: Colors.green.shade300,
+        fillColor: Colors.green.shade300,
       ));
     });
   }
@@ -91,159 +173,306 @@ class _MapScreenState extends State<MapScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _buildPestGuardSheet(),
-    );
-  }
-
-  Widget _buildPestGuardSheet() {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.8,
-      margin: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: const BoxDecoration(
-              color: Colors.green,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.8,
+        margin: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                color: Colors.green,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
               ),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.bug_report, color: Colors.white, size: 28),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'PestGuard - Pest Information',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+              child: Row(
+                children: [
+                  const Icon(Icons.bug_report, color: Colors.white, size: 28),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'PestGuard - Pest Information',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-          ),
-
-          // Table
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Table(
-                border: TableBorder.all(color: Colors.grey.shade300),
-                columnWidths: const {
-                  0: FlexColumnWidth(2),
-                  1: FlexColumnWidth(2),
-                  2: FlexColumnWidth(3),
-                },
-                children: [
-                  // Header row
-                  TableRow(
-                    decoration: BoxDecoration(color: Colors.grey.shade100),
-                    children: const [
-                      Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Text('Pest Name', style: TextStyle(fontWeight: FontWeight.bold)),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Text('Symptoms', style: TextStyle(fontWeight: FontWeight.bold)),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Text('Management Strategies', style: TextStyle(fontWeight: FontWeight.bold)),
-                      ),
-                    ],
-                  ),
-
-                  // Brown Planthopper
-                  const TableRow(
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Text('Brown Planthopper\n(Nilaparvata lugens)', style: TextStyle(fontSize: 12)),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Text('Plants turn yellow, dry out, and die (stunted hopperburn).', style: TextStyle(fontSize: 12)),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Text('• Use resistant rice varieties\n• Plant synchronously with neighbors\n• Use light traps to capture the hoppers in rice sequences of Ratoon/main/tootat.', style: TextStyle(fontSize: 11)),
-                      ),
-                    ],
-                  ),
-
-                  // Armyworm
-                  const TableRow(
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Text('Armyworm\n(Spodoptera spp.)', style: TextStyle(fontSize: 12)),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Text('Leaves are chewed or eaten at night.', style: TextStyle(fontSize: 12)),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Text('• Spray organic or insecticide chemical treatment\n• Use light traps to capture adult moths', style: TextStyle(fontSize: 11)),
-                      ),
-                    ],
-                  ),
-
-                  // White Grub
-                  const TableRow(
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Text('White Grub\n(Uret) (Lepidiota stigma)', style: TextStyle(fontSize: 12)),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Text('Root damage causes plant wilting and death.', style: TextStyle(fontSize: 12)),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Text('• Apply entomopathogenic nematodes (Steinernema spp.)\n• Use Metarhizium fungi\n• Granular insecticides as baits/feeding preparation.', style: TextStyle(fontSize: 11)),
-                      ),
-                    ],
-                  ),
-
-                  // Leaf Miner
-                  const TableRow(
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Text('Leaf Miner\n(Liriomyza spp.)', style: TextStyle(fontSize: 12)),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Text('Tunnels or mines in leaves, reduced photosynthesis.', style: TextStyle(fontSize: 12)),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Text('• Remove and destroy infected leaves\n• Maintain greenhouse hygiene\n• Use beneficial insects\n• Remove and destroy infected plants', style: TextStyle(fontSize: 11)),
-                      ),
-                    ],
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
             ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Table(
+                  border: TableBorder.all(color: Colors.grey.shade300),
+                  columnWidths: const {
+                    0: FlexColumnWidth(2),
+                    1: FlexColumnWidth(2),
+                    2: FlexColumnWidth(3),
+                  },
+                  children: [
+                    TableRow(
+                      decoration: BoxDecoration(color: Colors.grey.shade100),
+                      children: const [
+                        Padding(
+                          padding: EdgeInsets.all(12),
+                          child: Text('Pest Name', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.all(12),
+                          child: Text('Symptoms', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.all(12),
+                          child: Text('Management Strategies', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                    const TableRow(
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.all(12),
+                          child: Text('Brown Planthopper\n(Nilaparvata lugens)', style: TextStyle(fontSize: 12)),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.all(12),
+                          child: Text('Plants turn yellow, dry out, and die (stunted hopperburn).', style: TextStyle(fontSize: 12)),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.all(12),
+                          child: Text('• Use resistant rice varieties\n• Plant synchronously with neighbors\n• Use light traps to capture the hoppers', style: TextStyle(fontSize: 11)),
+                        ),
+                      ],
+                    ),
+                    const TableRow(
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.all(12),
+                          child: Text('Armyworm\n(Spodoptera spp.)', style: TextStyle(fontSize: 12)),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.all(12),
+                          child: Text('Leaves are chewed or eaten at night.', style: TextStyle(fontSize: 12)),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.all(12),
+                          child: Text('• Spray organic or insecticide chemical treatment\n• Use light traps to capture adult moths', style: TextStyle(fontSize: 11)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSustainableInfo() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.6,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
           ),
-        ],
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              decoration: const BoxDecoration(
+                color: Colors.green,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.keyboard_arrow_left, color: Colors.white, size: 24),
+                  SizedBox(width: 8),
+                  Text(
+                    'Crop Rotation Recommendations',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Container(
+                      height: 70,
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 60,
+                            height: 50,
+                            margin: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade700,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Icon(Icons.grass, color: Colors.white, size: 24),
+                          ),
+                          const Expanded(
+                            child: Text(
+                              'Rice Plant',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.only(right: 16),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'More\nInformation',
+                                  style: TextStyle(color: Colors.white, fontSize: 11),
+                                  textAlign: TextAlign.right,
+                                ),
+                                SizedBox(width: 8),
+                                Icon(Icons.arrow_forward_ios, color: Colors.white, size: 14),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      height: 70,
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 60,
+                            height: 50,
+                            margin: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade700,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Icon(Icons.agriculture, color: Colors.white, size: 24),
+                          ),
+                          const Expanded(
+                            child: Text(
+                              'Corn',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.only(right: 16),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'More\nInformation',
+                                  style: TextStyle(color: Colors.white, fontSize: 11),
+                                  textAlign: TextAlign.right,
+                                ),
+                                SizedBox(width: 8),
+                                Icon(Icons.arrow_forward_ios, color: Colors.white, size: 14),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      height: 70,
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 60,
+                            height: 50,
+                            margin: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade700,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Icon(Icons.eco, color: Colors.white, size: 24),
+                          ),
+                          const Expanded(
+                            child: Text(
+                              'Peanut',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.only(right: 16),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'More\nInformation',
+                                  style: TextStyle(color: Colors.white, fontSize: 11),
+                                  textAlign: TextAlign.right,
+                                ),
+                                SizedBox(width: 8),
+                                Icon(Icons.arrow_forward_ios, color: Colors.white, size: 14),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -357,92 +586,197 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
 
-          Positioned(
-            bottom: 20,
-            left: 16,
-            right: 16,
-            child: Column(
-              children: [
-                GestureDetector(
-                  onTap: () => _showPestGuardInfo(),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.circular(12),
+          // Legend untuk prediction mode
+          if (_showPredictionMode)
+            Positioned(
+              bottom: 200,
+              left: 16,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
                     ),
-                    child: const Row(
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.bug_report, color: Colors.white, size: 24),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text("PestGuard", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                              Text("Identification of Potential Pests and Mitigation Strategies", style: TextStyle(color: Colors.white70, fontSize: 12)),
-                            ],
-                          ),
+                        Container(
+                          width: 20,
+                          height: 15,
+                          color: Colors.green.shade800,
                         ),
-                        Text("More Information", style: TextStyle(color: Colors.white, fontSize: 12)),
-                        Icon(Icons.arrow_forward_ios, color: Colors.white, size: 12),
+                        const SizedBox(width: 8),
+                        const Text('High Fertility', style: TextStyle(fontSize: 12)),
                       ],
                     ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.green,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.analytics, color: Colors.white, size: 24),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text("Prediction", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                            Text("Land fertility prediction", style: TextStyle(color: Colors.white70, fontSize: 12)),
-                          ],
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 20,
+                          height: 15,
+                          color: Colors.green.shade600,
                         ),
-                      ),
-                      Text("More Information", style: TextStyle(color: Colors.white, fontSize: 12)),
-                      Icon(Icons.arrow_forward_ios, color: Colors.white, size: 12),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.green,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.eco, color: Colors.white, size: 24),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text("Sustainable", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                            Text("Crop Rotation Recommendations", style: TextStyle(color: Colors.white70, fontSize: 12)),
-                          ],
+                        const SizedBox(width: 8),
+                        const Text('Moderately Fertile', style: TextStyle(fontSize: 12)),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 20,
+                          height: 15,
+                          color: Colors.green.shade300,
                         ),
-                      ),
-                      Text("More Information", style: TextStyle(color: Colors.white, fontSize: 12)),
-                      Icon(Icons.arrow_forward_ios, color: Colors.white, size: 12),
-                    ],
-                  ),
+                        const SizedBox(width: 8),
+                        const Text('Low Fertility', style: TextStyle(fontSize: 12)),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+
+          // Back button untuk prediction mode
+          if (_showPredictionMode)
+            Positioned(
+              bottom: 340,
+              left: 16,
+              child: GestureDetector(
+                onTap: () {
+                  _loadKabupatenBogor();
+                },
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.keyboard_arrow_left,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+              ),
+            ),
+
+          // Cards di bawah (hide saat prediction mode)
+          if (!_showPredictionMode)
+            Positioned(
+              bottom: 20,
+              left: 16,
+              right: 16,
+              child: Column(
+                children: [
+                  GestureDetector(
+                    onTap: () => _showPestGuardInfo(),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.bug_report, color: Colors.white, size: 24),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("PestGuard", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                                Text("Identification of Potential Pests and Mitigation Strategies", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                          Text("More Information", style: TextStyle(color: Colors.white, fontSize: 12)),
+                          Icon(Icons.arrow_forward_ios, color: Colors.white, size: 12),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () => _showPredictionMap(),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.analytics, color: Colors.white, size: 24),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("Prediction", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                                Text("Land fertility prediction", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                          Text("More Information", style: TextStyle(color: Colors.white, fontSize: 12)),
+                          Icon(Icons.arrow_forward_ios, color: Colors.white, size: 12),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () => _showSustainableInfo(),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.eco, color: Colors.white, size: 24),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("Sustainable", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                                Text("Crop Rotation Recommendations", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                          Text("More Information", style: TextStyle(color: Colors.white, fontSize: 12)),
+                          Icon(Icons.arrow_forward_ios, color: Colors.white, size: 12),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
           if (_isLoading)
             const Center(child: CircularProgressIndicator()),
