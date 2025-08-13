@@ -149,9 +149,9 @@ class AppRouter {
           },
         ),
 
-        // MOVED: Land detail to root level for back button
+        // FIXED: Update path to match navigation call
         GoRoute(
-          path: '/land/:landId',
+          path: '/monitoring/detail/:landId',  // ← Changed from '/land/:landId'
           name: 'landdetail',
           builder: (context, state) {
             final landId = state.pathParameters['landId'];
@@ -164,7 +164,7 @@ class AppRouter {
               );
             }
 
-            final landName = state.uri.queryParameters['name'] ?? 'Unknown Land';
+            final landName = state.uri.queryParameters['landName'] ?? 'Unknown Land';  // Changed from 'name'
             final statusStr = state.uri.queryParameters['status'] ?? 'healthy';
 
             final status = switch (statusStr.toLowerCase()) {
